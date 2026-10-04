@@ -75,7 +75,7 @@ function nCore:Fonts()
 
         TextStatusBarText,
     }) do
-        font:SetFont(STANDARD_TEXT_FONT, 13)
+        font:SetFont(STANDARD_TEXT_FONT, 13, "")
         font:SetShadowOffset(1, -1)
     end
 
@@ -86,7 +86,7 @@ function nCore:Fonts()
         AchievementCriteriaFont,
         AchievementDateFont,
     }) do
-        font:SetFont(STANDARD_TEXT_FONT, 12)
+        font:SetFont(STANDARD_TEXT_FONT, 12, "")
     end
 
     GameFontNormalHuge:SetFont(STANDARD_TEXT_FONT, 20, "OUTLINE")

@@ -35,9 +35,9 @@ if cfg.fontOutline then
     GameTooltipTextSmall:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize), "OUTLINE")
     GameTooltipTextSmall:SetShadowOffset(0, 0)
 else
-    GameTooltipHeaderText:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize + 2))
-    GameTooltipText:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize))
-    GameTooltipTextSmall:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize))
+    GameTooltipHeaderText:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize + 2), "")
+    GameTooltipText:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize), "")
+    GameTooltipTextSmall:SetFont(STANDARD_TEXT_FONT, (cfg.fontSize), "")
 end
 
 Mixin(GameTooltipStatusBar, BackdropTemplateMixin)
