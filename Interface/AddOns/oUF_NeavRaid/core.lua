@@ -14,7 +14,7 @@ local LSM = LibStub("LibSharedMedia-3.0")
 LSM:Register("statusbar", "Neav "..DEFAULT, "Interface\\AddOns\\oUF_NeavRaid\\media\\statusbarTexture")
 LSM:Register("font", "Neav "..DEFAULT, "Interface\\AddOns\\oUF_NeavRaid\\media\\fontSmall.ttf")
 
-oUF.colors.power["MANA"] = {0, 0.55, 1}
+oUF.colors.power.MANA:SetRGB(0, 0.55, 1)
 
 local _, playerClass = UnitClass("player")
 
@@ -59,7 +59,7 @@ function NeavRaid_OnEvent(self, event, ...)
     end
 end
 
-    -- oUF_AuraWatch
+    -- Buff indicators
     -- Class buffs { spell ID, position [, {r, g, b, a}][, anyUnit][, hideCount] }
 
 local indicatorList
@@ -109,75 +109,87 @@ do
     }
 end
 
-local function AuraIcon(self, icon)
-    if icon.cd then
-        icon.cd:SetReverse(true)
-        icon.cd:SetDrawEdge(true)
-        icon.cd:SetAllPoints(icon.icon)
-        icon.cd:SetHideCountdownNumbers(true)
-    end
-end
-
 local offsets
 do
     local space = 2
 
-    -- luacheck: push ignore icon
     offsets = {
         TOPLEFT = {
             icon = {space, -space},
-            count = {"TOP", icon, "BOTTOM", 0, 0},
+            count = function(icon) return {"TOP", icon, "BOTTOM", 0, 0} end,
         },
 
         TOPRIGHT = {
             icon = {-space, -space},
-            count = {"TOP", icon, "BOTTOM", 0, 0},
+            count = function(icon) return {"TOP", icon, "BOTTOM", 0, 0} end,
         },
 
         BOTTOMLEFT = {
             icon = {space, space},
-            count = {"LEFT", icon, "RIGHT", 1, 0},
+            count = function(icon) return {"LEFT", icon, "RIGHT", 1, 0} end,
         },
 
         BOTTOMRIGHT = {
             icon = {-space, space},
-            count = {"RIGHT", icon, "LEFT", -1, 0},
+            count = function(icon) return {"RIGHT", icon, "LEFT", -1, 0} end,
         },
 
         LEFT = {
             icon = {space, 0},
-            count = {"LEFT", icon, "RIGHT", 1, 0},
+            count = function(icon) return {"LEFT", icon, "RIGHT", 1, 0} end,
         },
 
         RIGHT = {
             icon = {-space, 0},
-            count = {"RIGHT", icon, "LEFT", -1, 0},
+            count = function(icon) return {"RIGHT", icon, "LEFT", -1, 0} end,
         },
 
         TOP = {
             icon = {0, -space},
-            count = {"CENTER", icon, 0, 0},
+            count = function(icon) return {"CENTER", icon, 0, 0} end,
         },
 
         BOTTOM = {
             icon = {0, space},
-            count = {"CENTER", icon, 0, 0},
+            count = function(icon) return {"CENTER", icon, 0, 0} end,
         },
     }
-    -- luacheck: pop
 end
 
-local function CreateIndicators(self, unit)
+    -- Indicators are aura slots of the client side aura container. Matching auras by
+    -- spell ID is permitted for helpful auras on friendly units.
 
-    self.AuraWatch = CreateFrame("Frame", "$parentAuraWatch", self)
+local function CreateIndicatorButton(element, options, button)
+    local size = nRaidDB.indicatorSize
+    button:SetSize(size, size)
+    button:EnableMouse(false)
 
-    local Auras = {}
-    Auras.icons = {}
-    Auras.customIcons = true
-    Auras.presentAlpha = 1
-    Auras.missingAlpha = 0
-    Auras.PostCreateIcon = AuraIcon
+    local icon = button:CreateTexture("$parentTexture", "OVERLAY")
+    icon:SetAllPoints(button)
+    icon:SetTexture("Interface\\AddOns\\oUF_NeavRaid\\media\\borderIndicator")
+    icon:SetVertexColor(unpack(options.color or {0.8, 0.8, 0.8}))
+    button.icon = icon
 
+    local cd = CreateFrame("Cooldown", "$parentCD", button, "CooldownFrameTemplate")
+    cd:SetAllPoints(icon)
+    cd:SetReverse(true)
+    cd:SetDrawEdge(true)
+    cd:SetHideCountdownNumbers(true)
+    button.cd = cd
+    button:SetDurationCooldown(cd)
+
+    if not options.hideCount then
+        local count = button:CreateFontString("$parentCount", "OVERLAY")
+        count:SetShadowColor(0, 0, 0)
+        count:SetShadowOffset(1, -1)
+        count:SetPoint(unpack(offsets[options.position].count(button)))
+        count:SetFont("Interface\\AddOns\\oUF_NeavRaid\\media\\fontVisitor.ttf", 13)
+        button.count = count
+        button:SetApplicationCount(count, {})
+    end
+end
+
+local function CreateIndicators(self)
     local buffs = {}
 
     if indicatorList["ALL"] then
@@ -192,60 +204,108 @@ local function CreateIndicators(self, unit)
         end
     end
 
-    if buffs then
-        for _, spell in pairs(buffs) do
+    local indicators = self:CreateAuras()
+    indicators:SetAllPoints(self.Health)
+    indicators:SetFrameLevel(self.Health:GetFrameLevel() + 2)
+    indicators.CreateButton = CreateIndicatorButton
 
-            local icon = CreateFrame("Frame", "$parentSpell"..spell[1], self.AuraWatch)
-            icon:SetWidth(nRaidDB.indicatorSize)
-            icon:SetHeight(nRaidDB.indicatorSize)
-            icon:SetPoint(spell[2], self.Health, unpack(offsets[spell[2]].icon))
+    for _, spell in pairs(buffs) do
+        local slotKey = indicators:AddSlot(spell[4] and "HELPFUL" or "HELPFUL|PLAYER", {
+            candidateFilters = {
+                includeSpellIDs = {[spell[1]] = true},
+            },
+            position = spell[2],
+            color = spell[3],
+            hideCount = spell[5],
+        })
 
-            icon.spellID = spell[1]
-            icon.anyUnit = spell[4]
-            icon.hideCount = spell[5]
-
-            local cd = CreateFrame("Cooldown", "$parentCD", icon, "CooldownFrameTemplate")
-            cd:SetAllPoints(icon)
-            icon.cd = cd
-
-                -- Indicator
-
-            local tex = icon:CreateTexture("$parentTexture", "OVERLAY")
-            tex:SetAllPoints(icon)
-            tex:SetTexture("Interface\\AddOns\\oUF_NeavRaid\\media\\borderIndicator")
-            icon.icon = tex
-
-                -- Color Overlay
-
-            if spell[3] then
-                icon.icon:SetVertexColor(unpack(spell[3]))
-            else
-                icon.icon:SetVertexColor(0.8, 0.8, 0.8)
-            end
-
-            if not icon.hideCount then
-                local count = icon:CreateFontString("$parentCount", "OVERLAY")
-                count:SetShadowColor(0, 0, 0)
-                count:SetShadowOffset(1, -1)
-                count:SetPoint(unpack(offsets[spell[2]].count))
-                count:SetFont("Interface\\AddOns\\oUF_NeavRaid\\media\\fontVisitor.ttf", 13)
-                icon.count = count
-            end
-
-             Auras.icons[spell[1]] = icon
-        end
+        local slot = indicators:GetAuraSlotFrame(slotKey)
+        slot:ClearAllPoints()
+        slot:SetPoint(spell[2], self.Health, unpack(offsets[spell[2]].icon))
     end
-    self.AuraWatch = Auras
+
+    self.Indicators = indicators
+end
+
+    -- The most important debuff (client side unit frame debuff priority) is shown in
+    -- the center of the frame. Replaces the oUF_Freebgrid debuff list.
+
+local function CreateDebuffButton(element, options, button)
+    local size = nRaidDB.debuffSize
+    button:SetSize(size, size)
+    button:EnableMouse(false)
+
+    local background = button:CreateTexture(nil, "BACKGROUND")
+    background:SetPoint("TOPLEFT", -1, 1)
+    background:SetPoint("BOTTOMRIGHT", 1, -1)
+    background:SetColorTexture(0, 0, 0, 1)
+
+    local border = button:CreateTexture(nil, "BORDER")
+    border:SetAllPoints(button)
+    border:SetTexture("Interface\\Buttons\\WHITE8x8")
+    button.Border = border
+    button:AddDispelTypeTexture(border, {
+        style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
+        showWhenHarmful = true,
+        showWithoutDispelType = true,
+        customDispelColorMap = element.__owner.colors.dispel,
+    })
+
+    local icon = button:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("TOPLEFT", 2, -2)
+    icon:SetPoint("BOTTOMRIGHT", -2, 2)
+    icon:SetTexCoord(0.1, 0.9, 0.1, 0.9)
+    button.icon = icon
+    button:SetIcon(icon)
+
+    local iconFont = GameFontNormalSmall:GetFont()
+
+    local count = button:CreateFontString(nil, "OVERLAY")
+    count:SetFont(iconFont, 10, "THINOUTLINE")
+    count:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", 1, 1)
+    button.count = count
+    button:SetApplicationCount(count, {})
+
+    local remaining = button:CreateFontString(nil, "OVERLAY")
+    remaining:SetPoint("CENTER", icon, 0.5, 0)
+    remaining:SetFont(iconFont, 11, "THINOUTLINE")
+    remaining:SetTextColor(1, 0.82, 0)
+    button.remaining = remaining
+    button:SetDurationText(remaining, {})
+end
+
+local function CreateDebuff(self)
+    local debuff = self:CreateAuras()
+    debuff:SetSize(nRaidDB.debuffSize, nRaidDB.debuffSize)
+    debuff:SetPoint("CENTER", self.Health, 0, 3)
+    debuff:SetFrameLevel(self.Health:GetFrameLevel() + 3)
+    debuff.CreateButton = CreateDebuffButton
+
+    local slotKey = debuff:AddSlot("HARMFUL", {
+        sortMethod = AuraContainerSortMethod.UnitFrameDebuff,
+    })
+
+    local slot = debuff:GetAuraSlotFrame(slotKey)
+    slot:ClearAllPoints()
+    slot:SetAllPoints(debuff)
+
+    self.Debuff = debuff
 end
 
 local function UpdateThreat(self, _, unit)
-    if self.unit ~= unit then
+    if self.__unit ~= unit then
         return
     end
 
-    local threatStatus = UnitThreatSituation(unit) or 0
+    local threatStatus = UnitThreatSituation(unit)
 
-    if threatStatus and threatStatus >= 2 then
+        -- The threat status is secret in restricted content.
+
+    if issecretvalue(threatStatus) or not threatStatus then
+        threatStatus = 0
+    end
+
+    if threatStatus >= 2 then
         local r, g, b = GetThreatStatusColor(threatStatus)
         self.ThreatIndicator:SetBackdropBorderColor(r, g, b, 1)
     else
@@ -254,7 +314,7 @@ local function UpdateThreat(self, _, unit)
 end
 
 local function UpdatePower(self, _, unit)
-    if self.unit ~= unit then
+    if self.__unit ~= unit then
         return
     end
 
@@ -319,6 +379,11 @@ local function GetHealthText(unit, cur, max)
     local healthString
     if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
         healthString = GetUnitStatus(unit)
+    elseif issecretvalue(cur) or issecretvalue(max) then
+            -- Secret values can't be compared, the deficit is shown whenever the unit is
+            -- missing health.
+        local deficit = C_StringUtil.TruncateWhenZero(UnitHealthMissing(unit, true))
+        healthString = C_StringUtil.WrapString(deficit, "|cffe50000-", "|r")
     else
         if (cur/max) < 0.95 then
             healthString = format("|cff%02x%02x%02x%s|r", 0.9*255, 0*255, 0*255, DeficitValue(max-cur))
@@ -331,26 +396,65 @@ local function GetHealthText(unit, cur, max)
 end
 
 local function UpdateHealth(Health, unit, cur, max)
-    if not UnitIsPlayer(unit) and not UnitIsFriend("player", unit) then
-        local r, g, b = 0, 0.82, 1
-        Health:SetStatusBarColor(r, g, b)
-        Health.bg:SetVertexColor(r * 0.25, g * 0.25, b * 0.25)
-    end
-
-    if UnitIsPlayer(unit) and UnitCanAttack("player", unit) then
-        local r, g, b = 1, 0, 0
-        Health:SetStatusBarColor(r, g, b)
-        Health.bg:SetVertexColor(r * 0.25, g * 0.25, b * 0.25)
-    end
-
     Health.Value:SetText(GetHealthText(unit, cur, max))
 end
 
+    -- The background is darkened with its alpha (the frame backdrop is black), the
+    -- class color can be secret and can't be multiplied.
+
+local function UpdateHealthBackground(Health, unit, color)
+    local r, g, b, multiplier
+
+    if UnitIsPlayer(unit) and UnitCanAttack("player", unit) then
+        r, g, b, multiplier = 1, 0, 0, 0.25
+        Health:SetStatusBarColor(r, g, b)
+    elseif not UnitIsPlayer(unit) and not UnitIsFriend("player", unit) then
+        r, g, b, multiplier = 0, 0.82, 1, 0.25
+        Health:SetStatusBarColor(r, g, b)
+    elseif color then
+        r, g, b = color:GetRGB()
+        multiplier = 0.3
+    end
+
+    if r then
+        Health.bg:SetVertexColor(r, g, b)
+        Health.bg:SetAlpha(multiplier)
+    end
+end
+
+local function UpdatePowerBackground(Power, unit, color, r, g, b)
+    if color then
+        r, g, b = color:GetRGB()
+    end
+
+    if r then
+        Power.bg:SetVertexColor(r, g, b)
+        Power.bg:SetAlpha(0.3)
+    end
+end
+
 local function UpdateSelectionBorder(self)
-    if UnitIsUnit("target", self.unit) then
+    local isTarget = UnitIsUnit("target", self.__unit)
+
+    if issecretvalue(isTarget) then
+        self.TargetBorder:SetAlphaFromBoolean(isTarget, 1, 0)
+        self.TargetBorder:Show()
+    elseif isTarget then
+        self.TargetBorder:SetAlpha(1)
         self.TargetBorder:Show()
     else
         self.TargetBorder:Hide()
+    end
+end
+
+local function UpdateFrame(self)
+    local unit = self.__unit
+
+    UpdateThreat(self, nil, unit)
+    UpdateSelectionBorder(self)
+
+    if self.Power then
+        UpdatePower(self, nil, unit)
     end
 end
 
@@ -398,12 +502,12 @@ local function CreateRaidLayout(self, unit)
     self.Health:SetOrientation(nRaidDB.horizontalHealthBars and "HORIZONTAL" or "VERTICAL")
 
     self.Health.PostUpdate = UpdateHealth
-    self.Health.frequentUpdates = true
+    self.Health.PostUpdateColor = UpdateHealthBackground
+    self.Health.smoothing = Enum.StatusBarInterpolation.ExponentialEaseOut
 
     self.Health.colorClass = true
     self.Health.colorClassNPC = true
     self.Health.colorDisconnected = true
-    self.Health.Smooth = true
 
         -- Health Background
 
@@ -411,7 +515,6 @@ local function CreateRaidLayout(self, unit)
     self.Health.bg:SetAllPoints(self.Health)
     self.Health.bg:SetTexture(statusbar)
 
-    self.Health.bg.multiplier = 0.3
 
         -- Health Text
 
@@ -450,17 +553,15 @@ local function CreateRaidLayout(self, unit)
         end
 
         self.Power.colorPower = true
-        self.Power.Smooth = true
+        self.Power.smoothing = Enum.StatusBarInterpolation.ExponentialEaseOut
+        self.Power.PostUpdateColor = UpdatePowerBackground
 
         self.Power.bg = self.Power:CreateTexture("$parentPowerBG", "BACKGROUND")
         self.Power.bg:SetAllPoints(self.Power)
         self.Power.bg:SetColorTexture(1, 1, 1)
 
-        self.Power.bg.multiplier = 0.3
 
-        tinsert(self.__elements, UpdatePower)
         self:RegisterEvent("UNIT_DISPLAYPOWER", UpdatePower)
-        UpdatePower(self, _, unit)
     end
 
         -- Health Prediction
@@ -468,7 +569,6 @@ local function CreateRaidLayout(self, unit)
     local myBar = CreateFrame("StatusBar", "$parentMyHealthPredictionBar", self)
     myBar:SetStatusBarTexture(statusbar, "OVERLAY")
     myBar:SetStatusBarColor(0, 0.827, 0.765, 1)
-    myBar.Smooth = true
 
     if nRaidDB.horizontalHealthBars then
         myBar:SetOrientation("HORIZONTAL")
@@ -485,7 +585,6 @@ local function CreateRaidLayout(self, unit)
     local otherBar = CreateFrame("StatusBar", "$parentOtherHealthPredictionBar", self)
     otherBar:SetStatusBarTexture(statusbar, "OVERLAY")
     otherBar:SetStatusBarColor(0.0, 0.631, 0.557, 1)
-    otherBar.Smooth = true
 
     if nRaidDB.horizontalHealthBars then
         otherBar:SetOrientation("HORIZONTAL")
@@ -502,7 +601,6 @@ local function CreateRaidLayout(self, unit)
     local absorbBar = CreateFrame("StatusBar", "$parentTotalAbsorbBar", self)
     absorbBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     absorbBar:SetStatusBarColor(0.85, 0.85, 0.9, 1)
-    absorbBar.Smooth = true
 
     if nRaidDB.horizontalHealthBars then
         absorbBar:SetOrientation("HORIZONTAL")
@@ -523,7 +621,6 @@ local function CreateRaidLayout(self, unit)
     healAbsorbBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     healAbsorbBar:SetStatusBarColor(0.9, 0.1, 0.3, 1)
     healAbsorbBar:SetReverseFill(true)
-    healAbsorbBar.Smooth = true
 
     if nRaidDB.horizontalHealthBars then
         healAbsorbBar:SetOrientation("HORIZONTAL")
@@ -561,16 +658,13 @@ local function CreateRaidLayout(self, unit)
         overHealAbsorb:SetHeight(3)
     end
 
-    self.HealthPrediction = {
-        myBar = myBar,
-        otherBar = otherBar,
-        healAbsorbBar = healAbsorbBar,
-        absorbBar = absorbBar,
-        overAbsorb = overAbsorb,
-        overHealAbsorb = overHealAbsorb,
-        maxOverflow = 1.05,
-        frequentUpdates = true
-    }
+    self.Health.HealingPlayer = myBar
+    self.Health.HealingOther = otherBar
+    self.Health.HealAbsorb = healAbsorbBar
+    self.Health.DamageAbsorb = absorbBar
+    self.Health.OverDamageAbsorbIndicator = overAbsorb
+    self.Health.OverHealAbsorbIndicator = overHealAbsorb
+    self.Health.incomingHealOverflow = 1.05
 
         -- Afk /offline timer, using frequentUpdates function from oUF tags
 
@@ -599,7 +693,6 @@ local function CreateRaidLayout(self, unit)
     self.ThreatIndicator:SetBackdropBorderColor(0, 0, 0, 0)
     self.ThreatIndicator:SetFrameLevel(self:GetFrameLevel() - 1)
 
-    tinsert(self.__elements, UpdateThreat)
     self:RegisterEvent("UNIT_THREAT_LIST_UPDATE", UpdateThreat)
     self:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", UpdateThreat)
 
@@ -635,15 +728,13 @@ local function CreateRaidLayout(self, unit)
     self.ReadyCheckIndicator.finishedTime = DEFAULT_READY_CHECK_STAY_TIME
     self.ReadyCheckIndicator.fadeTime = 1
 
-        -- Debuff icons, using freebAuras from oUF_Freebgrid
+        -- Debuff icon
 
-    self.FreebAuras = CreateFrame("Frame", "$parentFreebAuras", self)
-    self.FreebAuras:SetSize(nRaidDB.debuffSize, nRaidDB.debuffSize)
-    self.FreebAuras:SetPoint("CENTER", self.Health, 0, 3)
+    CreateDebuff(self)
 
         -- Create Indicators
 
-    CreateIndicators(self, unit)
+    CreateIndicators(self)
 
         -- Group Role Indicator
 
@@ -658,8 +749,8 @@ local function CreateRaidLayout(self, unit)
     self.ResurrectIndicator = self.Health:CreateTexture("$parentResIcon", "OVERLAY", nil, 7)
     self.ResurrectIndicator:SetSize(24, 24)
     self.ResurrectIndicator:SetPoint("CENTER", self.Health)
-    self.ResurrectIndicator.Override = function(self, event, ...)
-        local incomingResurrect = UnitHasIncomingResurrection(self.unit)
+    self.ResurrectIndicator.PostUpdate = function(element, incomingResurrect)
+        local self = element.__owner
 
         if incomingResurrect then
             self.ResurrectIndicator:Show()
@@ -681,6 +772,10 @@ local function CreateRaidLayout(self, unit)
     self.TargetBorder:Hide()
 
     self:RegisterEvent("PLAYER_TARGET_CHANGED", UpdateSelectionBorder, true)
+
+        -- Updates that oUF doesn't handle as an element
+
+    self.PostUpdate = UpdateFrame
 
         -- Range Check
 
@@ -776,7 +871,7 @@ oUF:Factory(function(self)
     if not sortByRole then
         local raid = {}
         for i = 1, 8 do
-            raid[i] = self:SpawnHeader("oUF_Raid"..i, nil, "party,raid,solo",
+            raid[i] = self:SpawnHeader("oUF_Raid"..i, nil,
             "showSolo", nRaidDB.showSolo,
             "showParty", nRaidDB.showParty,
             "showRaid", true,
@@ -796,6 +891,8 @@ oUF:Factory(function(self)
                 self:SetWidth(%d)
                 self:SetHeight(%d)
             ]]):format(nRaidDB.frameWidth, nRaidDB.frameHeight))
+
+            raid[i]:SetVisibility("party,raid,solo")
 
             if i == 1 then
                 if not nRaidDB.anchorToControls then
@@ -820,7 +917,7 @@ oUF:Factory(function(self)
             raid[i]:SetFrameStrata("LOW")
         end
     else
-        local raid = self:SpawnHeader("oUF_Raid", nil, "party,raid,solo",
+        local raid = self:SpawnHeader("oUF_Raid", nil,
         "showSolo", nRaidDB.showSolo,
         "showParty", nRaidDB.showParty,
         "showRaid", true,
@@ -842,6 +939,8 @@ oUF:Factory(function(self)
             self:SetHeight(%d)
         ]]):format(nRaidDB.frameWidth, nRaidDB.frameHeight))
 
+        raid:SetVisibility("party,raid,solo")
+
         if not nRaidDB.anchorToControls  then
             local toggleButton = _G["oUF_NeavRaidControlsFrame"]
             raid:SetPoint("TOPLEFT", toggleButton, "TOPRIGHT", 5, 0)
@@ -858,7 +957,7 @@ oUF:Factory(function(self)
     if nRaidDB.assistFrame then
         self:SetActiveStyle("oUF_Neav_Raid_MT")
 
-        local tanks = self:SpawnHeader("oUF_Neav_Raid_MT", nil, "solo,party,raid",
+        local tanks = self:SpawnHeader("oUF_Neav_Raid_MT", nil,
             "showRaid", true,
             "showParty", false,
             "yOffset", -spacing,
@@ -870,6 +969,7 @@ oUF:Factory(function(self)
                 self:SetHeight(%d)
             ]]):format(nRaidDB.frameWidth, nRaidDB.frameHeight))
 
+        tanks:SetVisibility("solo,party,raid")
         tanks:SetPoint("TOPLEFT", tankFrames, "TOPLEFT")
         tanks:SetScale(nRaidDB.frameScale)
         tanks:SetFrameStrata("LOW")

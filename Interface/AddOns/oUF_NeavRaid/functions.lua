@@ -266,7 +266,7 @@ function ns.CreateCheckBox(cfg)
     cfg.offsetY = cfg.offsetY or -4
     cfg.relativeTo = cfg.relativeTo or prevControl
 
-    local checkBox = CreateFrame("CheckButton", cfg.name, cfg.parent, "InterfaceOptionsCheckButtonTemplate")
+    local checkBox = CreateFrame("CheckButton", cfg.name, cfg.parent, "UICheckButtonTemplate")
     checkBox:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX, cfg.offsetY)
     checkBox.Text:SetText(cfg.label)
     checkBox.GetValue = function(self) return checkBox:GetChecked() end
@@ -336,12 +336,12 @@ function ns.CreateSlider(cfg)
 
     local value
     if cfg.isCvar then
-        value = BlizzardOptionsPanel_GetCVarSafe(cfg.var)
+        value = tonumber(C_CVar.GetCVar(cfg.var))
     else
         value = nRaidDB[cfg.var]
     end
 
-    local slider = CreateFrame("Slider", cfg.name, cfg.parent, "OptionsSliderTemplate")
+    local slider = CreateFrame("Slider", cfg.name, cfg.parent, "UISliderTemplateWithLabels")
     slider:SetWidth(180)
     slider:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX, cfg.offsetY)
     slider.GetValue = function(self) return slider.value end
@@ -396,13 +396,62 @@ function ns.CreateSlider(cfg)
     return slider
 end
 
-function ns.CreateDropdown(cfg)
+    -- Dropdowns use the menu system (UIDropDownMenu is deprecated).
+
+local function CreateDropdownButton(cfg, getEntries)
     cfg.initialPoint = cfg.initialPoint or "TOPLEFT"
     cfg.relativePoint = cfg.relativePoint or "BOTTOMLEFT"
     cfg.offsetX = cfg.offsetX or 0
     cfg.offsetY = cfg.offsetY or -26
     cfg.relativeTo = cfg.relativeTo or prevControl
 
+    local dropdown = CreateFrame("DropdownButton", cfg.name, cfg.parent, "WowStyle1DropdownTemplate")
+    dropdown:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX + 16, cfg.offsetY)
+    dropdown:SetWidth(180)
+    dropdown.var = cfg.var
+    dropdown.value = nRaidDB[cfg.var]
+
+    dropdown.GetValue = function(self)
+        return self.value
+    end
+
+    dropdown.SetControl = function(self)
+        self.value = nRaidDB[cfg.var]
+        self:GenerateMenu()
+    end
+
+    dropdown.title = dropdown:CreateFontString("$parentTitle", "BACKGROUND", "GameFontNormalSmall")
+    dropdown.title:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 4, 5)
+    dropdown.title:SetText(cfg.label)
+
+    local function IsSelected(value)
+        return dropdown.value == value
+    end
+
+    local function SetSelected(value)
+        dropdown.value = value
+
+        if cfg.func then
+            cfg.func(dropdown)
+        end
+
+        if cfg.needsRestart then
+            dropdown.restart = value ~= dropdown.oldValue
+        end
+    end
+
+    dropdown:SetupMenu(function(_, rootDescription)
+        for value, text in getEntries() do
+            rootDescription:CreateRadio(text, IsSelected, SetSelected, value)
+        end
+    end)
+
+    ns.RegisterControl(dropdown, cfg.parent)
+    prevControl = dropdown
+    return dropdown
+end
+
+function ns.CreateDropdown(cfg)
     --[[
         {
             type = "Dropdown",
@@ -415,80 +464,14 @@ function ns.CreateDropdown(cfg)
                 -- Do stuff here. Only ran on click.
             end,
             optionsTable = {
-                { text = L.TopLeft, value = 1, },
-                { text = L.BottomLeft, value = 2, },
-                { text = L.TopRight, value = 3, },
-                { text = L.BottomRight, value = 4, },
+                ["VALUE"] = L.Text,
             },
         },
     ]]
 
-    local dropdown = CreateFrame("Button", cfg.name, cfg.parent, "UIDropDownMenuTemplate")
-    dropdown:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX, cfg.offsetY)
-    dropdown:EnableMouse(true)
-    dropdown.GetValue = function(self) return UIDropDownMenu_GetSelectedValue(self) end
-    dropdown.SetControl = function(self)
-        self.value = nRaidDB[cfg.var]
-        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-        UIDropDownMenu_SetText(dropdown, cfg.optionsTable[self.value])
-    end
-    dropdown.var = cfg.var
-    dropdown.value = nRaidDB[cfg.var]
-
-    dropdown.title = dropdown:CreateFontString("$parentTitle", "BACKGROUND", "GameFontNormalSmall")
-    dropdown.title:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 20, 5)
-    dropdown.title:SetText(cfg.label)
-
-    local function Dropdown_OnClick(self)
-        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-
-        if cfg.func then
-            cfg.func(dropdown)
-        end
-
-        if cfg.needsRestart then
-            if self.value ~= dropdown.oldValue then
-                dropdown.restart = true
-            else
-                dropdown.restart = false
-            end
-        end
-    end
-
-    local function Initialize(self, level)
-        local selectedValue = UIDropDownMenu_GetSelectedValue(dropdown)
-        local info = UIDropDownMenu_CreateInfo()
-
-        for value, text in ns.pairsByKeys(cfg.optionsTable) do
-            info.text = text
-            info.value = value
-            info.func = Dropdown_OnClick
-            if info.value == selectedValue then
-                info.checked = 1
-                UIDropDownMenu_SetText(dropdown, text)
-            else
-                info.checked = nil
-            end
-            UIDropDownMenu_AddButton(info)
-        end
-    end
-
-    UIDropDownMenu_SetWidth(dropdown, 180)
-    UIDropDownMenu_SetSelectedValue(dropdown, nRaidDB[cfg.var])
-    UIDropDownMenu_SetText(dropdown, cfg.optionsTable[nRaidDB[cfg.var]])
-    UIDropDownMenu_Initialize(dropdown, Initialize)
-
-    ns.RegisterControl(dropdown, cfg.parent)
-    prevControl = dropdown
-    return dropdown
-end
-
-local function GetSharedMediaName(media, value)
-    for k, v in pairs(LSM:HashTable(media)) do
-        if v == value then
-            return k
-        end
-    end
+    return CreateDropdownButton(cfg, function()
+        return ns.pairsByKeys(cfg.optionsTable)
+    end)
 end
 
 function ns.CreateSharedMeidaDropdown(cfg)
@@ -499,86 +482,18 @@ function ns.CreateSharedMeidaDropdown(cfg)
             parent = Options,
             label = L.LocalizedName,
             var = "nRaidDBVariableGoesHere",
-            func = function(self)
-                -- Do stuff here. Only ran on click.
-            end,
             needsRestart = true,
             mediaType = "font", SharedMedia types: background, border, font, statusbar, or sound.
-            initialPoint = "TOPLEFT",
-            relativeTo = frame,
-            relativePoint, "BOTTOMLEFT",
-            offsetX = 0,
-            offsetY = -26,
         },
     ]]
 
-    cfg.initialPoint = cfg.initialPoint or "TOPLEFT"
-    cfg.relativePoint = cfg.relativePoint or "BOTTOMLEFT"
-    cfg.offsetX = cfg.offsetX or 0
-    cfg.offsetY = cfg.offsetY or -26
-    cfg.relativeTo = cfg.relativeTo or prevControl
+    return CreateDropdownButton(cfg, function()
+        local entries = {}
 
-    local dropdown = CreateFrame("Button", cfg.name, cfg.parent, "UIDropDownMenuTemplate")
-    dropdown:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX, cfg.offsetY)
-    dropdown:EnableMouse(true)
-    dropdown.GetValue = function(self) return UIDropDownMenu_GetSelectedValue(self) end
-    dropdown.SetControl = function(self)
-        self.value = nRaidDB[cfg.var]
-        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-        UIDropDownMenu_SetText(dropdown, GetSharedMediaName(cfg.mediaType, nRaidDB[cfg.var]))
-    end
-    dropdown.var = cfg.var
-
-    dropdown.title = dropdown:CreateFontString("$parentTitle", "BACKGROUND", "GameFontNormalSmall")
-    dropdown.title:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 20, 5)
-    dropdown.title:SetText(cfg.label)
-
-    local function Dropdown_OnClick(self)
-        UIDropDownMenu_SetSelectedValue(dropdown, self.value)
-
-        if cfg.func then
-            cfg.func(dropdown)
+        for name, path in pairs(LSM:HashTable(cfg.mediaType)) do
+            entries[path] = name
         end
 
-        if cfg.needsRestart then
-            if self.value ~= dropdown.oldValue then
-                dropdown.restart = true
-            else
-                dropdown.restart = false
-            end
-        end
-    end
-
-    local function Initialize(self, level)
-        local selectedValue = UIDropDownMenu_GetSelectedValue(dropdown)
-        local info = UIDropDownMenu_CreateInfo()
-
-        for key, value in ns.pairsByKeys(LSM:HashTable(cfg.mediaType)) do
-            info.text = key
-            info.value = value
-            info.func = Dropdown_OnClick
-            if info.value == selectedValue then
-                info.checked = 1
-                UIDropDownMenu_SetText(dropdown, key)
-            else
-                info.checked = nil
-            end
-            if cfg.mediaType == "font" then
-                local fontObject = CreateFont("NeavDropdownFont"..key)
-                fontObject:SetFont(value, 13)
-                info.fontObject = fontObject
-            end
-            UIDropDownMenu_AddButton(info)
-        end
-    end
-
-    UIDropDownMenu_SetWidth(dropdown, 180)
-    UIDropDownMenu_SetSelectedValue(dropdown, nRaidDB[cfg.var])
-    UIDropDownMenu_SetText(dropdown, GetSharedMediaName(cfg.mediaType, nRaidDB[cfg.var]))
-
-    UIDropDownMenu_Initialize(dropdown, Initialize)
-
-    ns.RegisterControl(dropdown, cfg.parent)
-    prevControl = dropdown
-    return dropdown
+        return ns.pairsByKeys(entries)
+    end)
 end

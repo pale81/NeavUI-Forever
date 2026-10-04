@@ -107,9 +107,6 @@ local function DisableBlizzard()
     if _G.CompactRaidFrameManager and (_G.CompactRaidFrameManager:GetParent() ~= hider) then
         _G.CompactRaidFrameManager:SetParent(hider)
     end
-
-    InterfaceOptionsFrameCategoriesButton10:SetScale(0.00001)
-    InterfaceOptionsFrameCategoriesButton10:SetAlpha(0)
 end
 
 ---------------------------
@@ -135,30 +132,30 @@ local button
 
 -- Clear all world markers button.
 button = manager:CreateButton(addon.."ButtonWMCancel", "|TInterface\\Buttons\\UI-GroupLoot-Pass-Up:14:14:0:0|t", REMOVE_WORLD_MARKERS)
-button:SetScript("OnClick", ClearRaidMarker)
+button:SetScript("OnClick", function() ClearRaidMarker() end)
 button:SetPoint("TOP", previousButton, "BOTTOM", 0, 0)
 previousButton = button
 
 -- RoleCheck Button
 button = manager:CreateButton(addon.."ButtonRoleCheck", "|TInterface\\LFGFrame\\LFGRole:14:14:0:0:64:16:32:48:0:16|t", LFG_LIST_ROLE_CHECK)
-button:SetScript("OnClick", InitiateRolePoll)
+button:SetScript("OnClick", function() InitiateRolePoll() end)
 button:SetPoint("TOP", previousButton, "BOTTOM", 0, -10)
 previousButton = button
 
 -- Convert raid to party button.
 leftButton = manager:CreateButton(addon.."ButtonRaidToParty", "|TInterface\\GroupFrame\\UI-Group-AssistantIcon:14:14:0:0|t", CONVERT_TO_PARTY)
-leftButton:SetScript("OnClick", ConvertToParty)
+leftButton:SetScript("OnClick", function() C_PartyInfo.ConvertToParty() end)
 leftButton:SetPoint("RIGHT", button, "LEFT", 0, 0)
 
 -- Readycheck Button
 button = manager:CreateButton(addon.."ButtonReady", "|TInterface\\RaidFrame\\ReadyCheck-Ready:14:14:0:0|t", READY_CHECK)
-button:SetScript("OnClick", DoReadyCheck)
+button:SetScript("OnClick", function() C_PartyInfo.DoReadyCheck() end)
 button:SetPoint("TOP", previousButton, "BOTTOM", 0, 0)
 previousButton = button
 
 -- Convert party to raid button.
 leftButton = manager:CreateButton(addon.."ButtonPartyToRaid", "|TInterface\\GroupFrame\\UI-Group-LeaderIcon:14:14:0:0|t", CONVERT_TO_RAID)
-leftButton:SetScript("OnClick", ConvertToRaid)
+leftButton:SetScript("OnClick", function() C_PartyInfo.ConvertToRaid() end)
 leftButton:SetPoint("RIGHT", button, "LEFT", 0, 0)
 
 -- Pull Button
@@ -172,7 +169,10 @@ previousButton = button
 
 -- Stopwatch Toggle
 leftButton = manager:CreateButton(addon.."ButtonStopWatch", "|TInterface\\ChatFrame\\UI-ChatIcon-ArmoryChat-AwayMobile:14:14:0:0|t", STOPWATCH_TITLE)
-leftButton:SetScript("OnClick", Stopwatch_Toggle)
+leftButton:SetScript("OnClick", function()
+    C_AddOns.LoadAddOn("Blizzard_TimeManager")
+    Stopwatch_Toggle()
+end)
 leftButton:SetPoint("RIGHT", button, "LEFT", 0, 0)
 
 -- ToggleButton
