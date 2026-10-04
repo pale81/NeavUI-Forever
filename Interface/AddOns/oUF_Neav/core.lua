@@ -491,7 +491,7 @@ local function CreateUnitLayout(self, unit)
 
     self:RegisterForClicks("AnyUp")
 
-    self:SetScript("OnEnter", UnitFrame_OnEnter)
+    self:SetScript("OnEnter", ns.UnitFrame_OnEnter)
     self:SetScript("OnLeave", UnitFrame_OnLeave)
 
     if config.units.focus.enableFocusToggleKeybind then

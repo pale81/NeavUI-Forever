@@ -447,6 +447,19 @@ local function UpdateSelectionBorder(self)
     end
 end
 
+    -- oUF 14 keeps the unit in frame.__unit, the default UnitFrame_OnEnter reads
+    -- frame.unit and would call GameTooltip:SetUnit(nil).
+
+local function UnitFrame_ShowTooltip(self)
+    local unit = self.__unit
+    if not unit then
+        return
+    end
+
+    GameTooltip_SetDefaultAnchor(GameTooltip, self)
+    GameTooltip:SetUnit(unit)
+end
+
 local function UpdateFrame(self)
     local unit = self.__unit
 
@@ -466,7 +479,7 @@ local function CreateRaidLayout(self, unit)
     self:RegisterForClicks("AnyUp")
 
     self:SetScript("OnEnter", function(self)
-        UnitFrame_OnEnter(self)
+        UnitFrame_ShowTooltip(self)
 
         if self.Mouseover then
             self.Mouseover:SetAlpha(0.175)
