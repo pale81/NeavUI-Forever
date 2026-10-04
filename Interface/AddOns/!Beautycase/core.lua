@@ -10,7 +10,7 @@
     myFrame:SetBeautyBorderTexture(texture or "default" or "white")
     myFrame:SetBeautyShadowTexture(texture)
 
-    myFrame:SetBeautyBorderColor(r, g, b)
+    myFrame:SetBeautyBorderColor(r, g, b) - no arguments: default color
     myFrame:SetBeautyShadowColor(r, g, b)
 
     myFrame:HideBeautyBorder()
@@ -31,6 +31,11 @@ local formatName = "|cffFF0000"..addonName
 local textureNormal = "Interface\\AddOns\\!Beautycase\\media\\textureNormal"
 local textureWhite = "Interface\\AddOns\\!Beautycase\\media\\textureNormalWhite"
 local textureShadow = "Interface\\AddOns\\!Beautycase\\media\\textureShadow"
+
+    -- Default border color, multiplied with the gray border texture. Bronze like the
+    -- action bar gryphons; {1, 1, 1} gives the original gray border.
+
+local defaultColor = {1.0, 0.78, 0.52}
 
 local function HasBeautyBorder(self)
     if (self.beautyBorder) then
@@ -100,6 +105,8 @@ local function SetBeautyBorderColor(self, r, ...)
 
     if (type(r) == "table") then
         r, g, b, a = unpack(r)
+    elseif (r == nil) then
+        r, g, b = unpack(defaultColor)
     end
 
     if (not self) then
@@ -247,7 +254,7 @@ local function FuncCreateBorder(self, borderSize, R, G, B, uL1, ...)
             self.beautyBorder[i]:SetParent(self)
             self.beautyBorder[i]:SetTexture(textureNormal)
             self.beautyBorder[i]:SetSize(borderSize, borderSize)
-            self.beautyBorder[i]:SetVertexColor(R or 1, G or 1, B or 1)
+            self.beautyBorder[i]:SetVertexColor(R or defaultColor[1], G or defaultColor[2], B or defaultColor[3])
         end
 
         self.beautyBorder[1]:SetTexCoord(0, 1/3, 0, 1/3)
@@ -346,8 +353,19 @@ local widgetTypes = {
     "Cooldown", "GameTooltip", "MessageFrame", "ScrollingMessageFrame", "Model", "PlayerModel",
 }
 
+    -- The helper widgets are hidden right away. A new EditBox has auto focus and
+    -- would take the keyboard focus.
+
 for _, widgetType in ipairs(widgetTypes) do
-    AddAPIToType(CreateFrame(widgetType))
+    local object = CreateFrame(widgetType)
+    object:Hide()
+
+    if (object.SetAutoFocus) then
+        object:SetAutoFocus(false)
+        object:ClearFocus()
+    end
+
+    AddAPIToType(object)
 end
 
 AddAPIToType(Minimap)
