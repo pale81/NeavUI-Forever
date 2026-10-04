@@ -5,8 +5,15 @@ local cluster = MinimapCluster
 
     -- A "new" mail notification
 
+    -- The mail frame calls GetParent():Layout() on mail updates, so it needs a
+    -- parent with a Layout method.
+
+local mailHolder = CreateFrame("Frame", nil, Minimap)
+mailHolder:SetAllPoints(Minimap)
+mailHolder.Layout = function() end
+
 local mailFrame = cluster.IndicatorFrame.MailFrame
-mailFrame:SetParent(Minimap)
+mailFrame:SetParent(mailHolder)
 mailFrame:SetSize(14, 14)
 mailFrame:ClearAllPoints()
 mailFrame:SetPoint("BOTTOMRIGHT", Minimap, -4, 5)
