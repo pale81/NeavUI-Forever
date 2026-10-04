@@ -18,6 +18,22 @@ TimeManagerClockButton:SetPoint("BOTTOM", Minimap, 0, 2)
 
 TimeManagerAlarmFiredTexture:SetTexture(nil)
 
+    -- Player coordinates of the default UI below the top edge of the minimap,
+    -- in the font of the clock.
+
+local playerCoords = MinimapCluster.PlayerCoords
+if playerCoords then
+    playerCoords:SetParent(Minimap)
+    playerCoords:ClearAllPoints()
+    playerCoords:SetPoint("TOP", Minimap, 0, -4)
+    playerCoords:SetSize(120, 16)
+
+    local coordText = playerCoords.CoordText
+    coordText:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
+    coordText:SetShadowOffset(0, 0)
+    coordText:SetTextColor(classColor.r, classColor.g, classColor.b)
+end
+
 hooksecurefunc(TimeManagerAlarmFiredTexture, "Show", function()
     TimeManagerClockTicker:SetTextColor(1, 0, 1)
 end)
