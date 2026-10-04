@@ -1,8 +1,8 @@
 local _, nCore = ...
 
     -- Beautycase borders for the item slots of the bags, the bank and the character
-    -- frame, colored by item quality like the tooltip border. Empty slots and common
-    -- (white) items get the default border color.
+    -- frame, colored by item quality like the tooltip border. Empty slots, poor (gray)
+    -- and common (white) items get the default border color.
 
 function nCore:ItemBorders()
     if not nCoreDB.ItemBorders then return end
@@ -33,7 +33,7 @@ function nCore:ItemBorders()
             button.IconBorder:SetAlpha(0)
         end
 
-        if itemIDOrLink and not issecretvalue(quality) and quality and quality ~= Enum.ItemQuality.Common then
+        if itemIDOrLink and not issecretvalue(quality) and quality and quality > Enum.ItemQuality.Common then
             local r, g, b = C_Item.GetItemQualityColor(quality)
             button:SetBeautyBorderTexture("white")
             button:SetBeautyBorderColor(r, g, b)
@@ -44,4 +44,14 @@ function nCore:ItemBorders()
     end
 
     hooksecurefunc("SetItemButtonQuality", UpdateItemBorder)
+
+        -- Sidebar tabs of the character frame (stats, titles, equipment sets)
+
+    for i = 1, 4 do
+        local tab = _G["PaperDollSidebarTab"..i]
+        if tab and tab.CreateBeautyBorder and not tab.beautyBorder then
+            tab:CreateBeautyBorder(10)
+            tab:SetBeautyBorderPadding(-3)
+        end
+    end
 end
