@@ -49,7 +49,12 @@ end)
 local function GetChatLines(chat)
     local lines = {}
     for message = 1, chat:GetNumMessages() do
-        lines[message] = chat:GetMessageInfo(message)
+        local text = chat:GetMessageInfo(message)
+
+            -- Secret messages can't be copied.
+        if text and not issecretvalue(text) then
+            lines[#lines + 1] = text
+        end
     end
 
     return lines

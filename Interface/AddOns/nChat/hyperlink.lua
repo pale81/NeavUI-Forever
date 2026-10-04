@@ -24,7 +24,7 @@ local linktypes = {
 }
 
 local function OnHyperlinkEnter(frame, link, ...)
-    local linktype = link:match("^([^:]+)")
+    local linktype = not issecretvalue(link) and link:match("^([^:]+)")
     if linktype and linktypes[linktype] then
         GameTooltip:SetOwner(ChatFrame1, "ANCHOR_CURSOR", 0, 20)
         GameTooltip:SetHyperlink(link)
