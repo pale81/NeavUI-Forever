@@ -126,6 +126,11 @@ local function GetUnitColor(unit)
     return r, g, b
 end
 
+    -- Shared with the other NeavUI addons (unit frame name colors), instead of
+    -- overriding GameTooltip_UnitColor. The class color can be secret.
+
+Colorz_GetUnitColor = GetUnitColor
+
 TooltipDataProcessor.AddLinePreCall(Enum.TooltipDataLineType.UnitName, function(tooltip, lineData)
     local unit = lineData.unitToken
     if not issecretvalue(unit) and unit then

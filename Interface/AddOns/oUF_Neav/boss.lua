@@ -41,7 +41,7 @@ local function UpdateHealth(Health, unit, cur, max)
 
     local self = Health:GetParent()
     if self.Name.Bg then
-        self.Name.Bg:SetVertexColor(GameTooltip_UnitColor(unit))
+        self.Name.Bg:SetVertexColor(ns.GetUnitColor(unit))
     end
 end
 
@@ -125,7 +125,7 @@ local function CreateBossLayout(self, unit)
     self.Name:SetSize(110, 10)
     self.Name:SetPoint("BOTTOM", self.Health, "TOP", 0, 6)
 
-    self:Tag(self.Name, "[neav:namecolor][neav:name]|r")
+    self:Tag(self.Name, "[neav:name]")
 
         -- Name Background
 

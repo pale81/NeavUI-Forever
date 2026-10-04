@@ -66,41 +66,42 @@ tags["neav:level"] = function(unit)
 end
 events["neav:level"] = "UNIT_LEVEL PLAYER_LEVEL_UP UNIT_CLASSIFICATION_CHANGED"
 
-    -- Name color. Used as "[neav:namecolor][neav:name]|r", because a (possibly secret)
-    -- name can't be concatenated with the color code.
+    -- Name, colored with C_ColorUtil.WrapTextInColor, which accepts secret names and
+    -- colors. Player and party: class color, target of target: unit color (class
+    -- color for players), other units: white.
 
-tags["neav:namecolor"] = function(unit)
+local NAME_WHITE = CreateColor(1, 1, 1)
+local NAME_GREEN = CreateColor(0, 1, 0)
+
+local function GetNameColor(unit)
     if unit == "player" or unit:match("party") then
         local _, class = UnitClass(unit)
 
         if issecretvalue(class) then
-            return C_ClassColor.GetClassColor(class):GenerateHexColorMarkup()
+            return C_ClassColor.GetClassColor(class)
         elseif class and oUF.colors.class[class] then
-            return oUF.colors.class[class]:GenerateHexColorMarkup()
+            return oUF.colors.class[class]
         else
-            return "|cff00ff00"
+            return NAME_GREEN
         end
-    elseif unit == "targettarget" or unit == "focustarget" or unit:match("arena(%d)target") then
-        local r, g, b = UnitSelectionColor(unit)
-        return format("|cff%02x%02x%02x", r*255, g*255, b*255)
+    elseif unit == "targettarget" or unit == "focustarget" then
+        return CreateColor(ns.GetUnitColor(unit))
     else
-        return "|cffffffff"
+        return NAME_WHITE
     end
 end
-events["neav:namecolor"] = "UNIT_NAME_UPDATE UNIT_FACTION"
 
 tags["neav:name"] = function(unit)
     local name = UnitName(unit)
 
-    if issecretvalue(name) then
-        return name
+    if not issecretvalue(name) then
+        name = name or UNKNOWN
+        name = (len(name) > 15) and gsub(name, "%s?(.[\128-\191]*)%S+%s", "%1. ") or name
     end
 
-    name = name or UNKNOWN
-
-    return (len(name) > 15) and gsub(name, "%s?(.[\128-\191]*)%S+%s", "%1. ") or name
+    return C_ColorUtil.WrapTextInColor(name, GetNameColor(unit))
 end
-events["neav:name"] = "UNIT_NAME_UPDATE"
+events["neav:name"] = "UNIT_NAME_UPDATE UNIT_FACTION"
 
 local timer = {}
 

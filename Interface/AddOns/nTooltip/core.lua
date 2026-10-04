@@ -279,11 +279,8 @@ local function AddMouseoverTarget(self, unit)
     end
 
     local unitTargetClassColor = RAID_CLASS_COLORS[select(2, UnitClass(unit.."target"))] or { r = 1, g = 0, b = 1 }
-    local unitTargetReactionColor = {
-        r = select(1, GameTooltip_UnitColor(unit.."target")),
-        g = select(2, GameTooltip_UnitColor(unit.."target")),
-        b = select(3, GameTooltip_UnitColor(unit.."target"))
-    }
+    local r, g, b = (Colorz_GetUnitColor or GameTooltip_UnitColor)(unit.."target")
+    local unitTargetReactionColor = {r = r, g = g, b = b}
 
     if UnitExists(unit.."target") then
         if UnitName("player") == unitTargetName then

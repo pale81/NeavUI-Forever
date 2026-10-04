@@ -253,6 +253,17 @@ ns.GetPowerText = function(unit, cur, max)
     return powerString
 end
 
+    -- Class colors for players, reaction colors otherwise (from !Colorz, the default
+    -- UI colors without it). The returned color can be secret.
+
+ns.GetUnitColor = function(unit)
+    if Colorz_GetUnitColor then
+        return Colorz_GetUnitColor(unit)
+    end
+
+    return GameTooltip_UnitColor(unit)
+end
+
 ns.MultiCheck = function(what, ...)
     for i = 1, select("#", ...) do
         if what == select(i, ...) then
