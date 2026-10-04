@@ -1349,9 +1349,12 @@ oUF:Factory(function(self)
     focustarget:SetPoint("TOPRIGHT", focus, "BOTTOMRIGHT", 15, 0)
     focustarget:SetFrameStrata("LOW")
 
-        -- Party frame spawn
+        -- Party frame spawn. Not needed when oUF_NeavRaid shows the party as raid
+        -- ("Show party" option, nRaidDB is loaded before PLAYER_LOGIN).
 
-    if config.units.party.show then
+    local raidShowsParty = C_AddOns.IsAddOnLoaded("oUF_NeavRaid") and nRaidDB and nRaidDB.showParty
+
+    if config.units.party.show and not raidShowsParty then
         local party = oUF:SpawnHeader("oUF_Neav_Party", nil,
             "oUF-initialConfigFunction", [[
                 self:SetWidth(105)
