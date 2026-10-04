@@ -91,8 +91,24 @@ local function GetNameColor(unit)
     end
 end
 
+    -- WoW Forever characters have a surname, UnitName returns it as second value.
+
+local SURNAME_SEPARATOR = Constants.CharacterNameSeparatorConsts and Constants.CharacterNameSeparatorConsts.CHARACTERNAME_SURNAME_SEPARATOR or " "
+
+local function GetFullName(unit)
+    local name, surname = UnitName(unit)
+
+    if not issecretvalue(surname) and (not surname or surname == "") then
+        return name
+    elseif issecretvalue(name) or issecretvalue(surname) then
+        return format("%s%s%s", name, SURNAME_SEPARATOR, surname)
+    end
+
+    return name and name..SURNAME_SEPARATOR..surname
+end
+
 tags["neav:name"] = function(unit)
-    local name = UnitName(unit)
+    local name = GetFullName(unit)
 
     if not issecretvalue(name) then
         name = name or UNKNOWN
