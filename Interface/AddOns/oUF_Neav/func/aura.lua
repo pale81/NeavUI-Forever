@@ -1,152 +1,207 @@
-
 local _, ns = ...
 local config = ns.Config
 
-local GetTime = GetTime
-local floor = floor
+    -- Auras are displayed by the client side aura container (oUF Auras element). Aura data
+    -- is not accessible to addons in restricted content, so all per-aura styling (dispel
+    -- type border, stealable border, duration, count) is configured on the buttons and
+    -- differences between player and other auras are handled with separate filter groups.
 
-local function ExactTime(time)
-    return format("%.1f", time), (time * 100 - floor(time * 100))/100
+local function CreateTextParent(button)
+    if button.Cooldown then
+        local textParent = CreateFrame("Frame", nil, button)
+        textParent:SetAllPoints()
+        textParent:SetFrameLevel(button.Cooldown:GetFrameLevel() + 1)
+        return textParent
+    end
+
+    return button
 end
 
-local function IsMine(unit)
-    if unit == "player" or unit == "vehicle" or unit == "pet" then
-        return true
+local function CreateAuraButton(element, options, button)
+    local size = options.size or element.size or 20
+    button:SetSize(size, size)
+    button:EnableMouse(true)
+    button:SetTooltipAnchorPoint("ANCHOR_BOTTOMLEFT", 0, 0)
+
+    local icon = button:CreateTexture(nil, "BORDER")
+    icon:SetAllPoints()
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    icon:SetDesaturated(options.desaturate == true)
+    button.Icon = icon
+    button:SetIcon(icon)
+
+        -- config.show.disableCooldown: use the cooldown spiral (e.g. for OmniCC) instead of
+        -- our duration text.
+
+    if config.show.disableCooldown then
+        local cooldown = CreateFrame("Cooldown", "$parentCooldown", button, "CooldownFrameTemplate")
+        cooldown:SetReverse(false)
+        cooldown:SetDrawEdge(true)
+        cooldown:SetHideCountdownNumbers(true)
+        cooldown:SetPoint("TOPRIGHT", icon, "TOPRIGHT", -1, -1)
+        cooldown:SetPoint("BOTTOMLEFT", icon, "BOTTOMLEFT", 1, 1)
+        button.Cooldown = cooldown
+        button:SetDurationCooldown(cooldown)
+    end
+
+    local textParent = CreateTextParent(button)
+
+    local overlay = textParent:CreateTexture(nil, "OVERLAY")
+    overlay:SetTexture(config.media.border)
+    overlay:SetPoint("TOPRIGHT", icon, 1.35, 1.35)
+    overlay:SetPoint("BOTTOMLEFT", icon, -1.35, -1.35)
+    button.Overlay = overlay
+
+    if options.isHarmful and not options.desaturate then
+        button:AddDispelTypeTexture(overlay, {
+            style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
+            showWhenHarmful = true,
+            showWithoutDispelType = true,
+            customDispelColorMap = element.__owner.colors.dispel,
+        })
     else
-        return false
+        overlay:SetVertexColor(0.5, 0.5, 0.5, 1)
     end
+
+    if options.showStealable then
+        local stealable = textParent:CreateTexture(nil, "OVERLAY", nil, 1)
+        stealable:SetPoint("TOPLEFT", icon, -3, 3)
+        stealable:SetPoint("BOTTOMRIGHT", icon, 3, -3)
+        stealable:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Stealable")
+        stealable:SetBlendMode("ADD")
+        button.Stealable = stealable
+        button:AddDispelTypeTexture(stealable, {
+            style = Enum.CustomAuraButtonDispelTypeTextureStyle.PreserveAsset,
+            showWhenHelpful = true,
+            showWithoutDispelType = true,
+            stealableFilter = Enum.CustomAuraButtonDispelTypeStealableFilter.Stealable,
+        })
+    end
+
+    local count = textParent:CreateFontString(nil, "OVERLAY")
+    count:SetFont(config.font.normal, 11, "OUTLINE")
+    count:SetShadowOffset(0, 0)
+    count:SetPoint("BOTTOMRIGHT", icon, 2, 0)
+    button.Count = count
+    button:SetApplicationCount(count, {})
+
+    if not config.show.disableCooldown and options.showDuration ~= false then
+        local time = textParent:CreateFontString(nil, "OVERLAY")
+        time:SetFont(config.font.normal, 8, "OUTLINE")
+        time:SetShadowOffset(0, 0)
+        time:SetPoint("TOP", icon, 0, 2)
+        button.Time = time
+        button:SetDurationText(time, {})
+    end
+
+    local shadow = button:CreateTexture(nil, "BACKGROUND")
+    shadow:SetPoint("TOPLEFT", icon, "TOPLEFT", -4, 4)
+    shadow:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 4, -4)
+    shadow:SetTexture("Interface\\AddOns\\oUF_Neav\\media\\borderBackground")
+    shadow:SetVertexColor(0, 0, 0, 1)
+    button.Shadow = shadow
 end
 
-ns.UpdateAuraTimer = function(self, elapsed)
-    self.elapsed = (self.elapsed or 0) + elapsed
-    if self.elapsed < 0.1 then
-        return
-    end
+    --[[
+        settings = {
+            point = {"TOPLEFT", self, "BOTTOMLEFT", -2, -5},
+            width, height, size, spacing,
+            initialAnchor = "TOPLEFT", growthX = "RIGHT", growthY = "DOWN",
+        }
 
-    self.elapsed = 0
+        Groups are added by the caller with auras:AddGroup(filter, options). Extra options
+        used by CreateAuraButton: isHarmful, desaturate, showStealable, showDuration.
+    --]]
 
-    local timeLeft = self.expires - GetTime()
-    if timeLeft <= 0 then
-        self.remaining:SetText(nil)
+function ns.CreateAuras(self, settings)
+    local auras = self:CreateAuras({
+        initialAnchor = settings.initialAnchor or "TOPLEFT",
+        growthX = settings.growthX or "RIGHT",
+        growthY = settings.growthY or "DOWN",
+        layoutLimit = settings.width,
+    })
+
+    auras:SetSize(settings.width, settings.height)
+    auras:SetPoint(unpack(settings.point))
+
+    auras.size = settings.size
+    auras.elementSpacing = settings.spacing
+    auras.lineSpacing = settings.spacing
+    auras.groupSpacing = settings.spacing
+    auras.groupLineSpacing = settings.spacing
+    auras.CreateButton = CreateAuraButton
+
+    return auras
+end
+
+    -- Adds the debuff groups of a frame. Other players debuffs are desaturated if
+    -- colorPlayerDebuffsOnly is enabled and only show a timer if showAllTimers is enabled.
+
+function ns.AddDebuffGroups(auras, num, onlyShowPlayer, forceNewLine)
+    local layout = {forceNewLine = forceNewLine}
+
+    if onlyShowPlayer then
+        auras:AddGroup("HARMFUL|PLAYER", {maxFrameCount = num, isHarmful = true, layout = layout})
+    elseif config.units.target.colorPlayerDebuffsOnly or not config.units.target.showAllTimers then
+        auras:AddGroup("HARMFUL|PLAYER", {maxFrameCount = num, isHarmful = true, layout = layout})
+        auras:AddGroup("HARMFUL|!PLAYER", {
+            maxFrameCount = num,
+            isHarmful = true,
+            desaturate = config.units.target.colorPlayerDebuffsOnly,
+            showDuration = config.units.target.showAllTimers,
+        })
     else
-        if timeLeft <= 5 and IsMine(self.caster) then
-            self.remaining:SetText("|cffff0000"..ExactTime(timeLeft).."|r")
-            if not self.ignoreSize then
-                self.remaining:SetFont(config.font.normal, 12, "OUTLINE")
-            end
-        else
-            self.remaining:SetText(ns.FormatTime(timeLeft))
-            if not self.ignoreSize then
-                self.remaining:SetFont(config.font.normal, 8, "OUTLINE")
-            end
-        end
+        auras:AddGroup("HARMFUL", {maxFrameCount = num, isHarmful = true, layout = layout})
     end
 end
 
-ns.PostUpdateIcon = function(self, unit, button, index, position)
-    button:SetAlpha(1)
-
-    if button.isStealable then
-        if button.Shadow then
-            button.Shadow:SetVertexColor(1, 1, 0, 1)
-        end
-    else
-        if button.Shadow then
-            button.Shadow:SetVertexColor(0, 0, 0, 1)
-        end
-    end
-
-    if config.units.target.colorPlayerDebuffsOnly then
-        if unit == "target" then
-            if button.isDebuff then
-                if not IsMine(button.caster) then
-                    button.overlay:SetVertexColor(0.45, 0.45, 0.45)
-                    button.icon:SetDesaturated(true)
-                else
-                    button.icon:SetDesaturated(false)
-                end
-            end
-        end
-    end
-
-    if button.remaining then
-        if  unit == "target"
-            and button.isDebuff
-            and not IsMine(button.caster)
-            and (not UnitIsFriend("player", unit) and UnitCanAttack(unit, "player") and not UnitPlayerControlled(unit))
-            and not config.units.target.showAllTimers
-        then
-
-            if button.remaining:IsShown() then
-                button.remaining:Hide()
-            end
-
-            button:SetScript("OnUpdate", nil)
-        else
-            local _, _, _, _, duration, expirationTime = UnitAura(unit, index, button.filter)
-            if duration and duration > 0 then
-                if not button.remaining:IsShown() then
-                    button.remaining:Show()
-                end
-            else
-                if button.remaining:IsShown() then
-                    button.remaining:Hide()
-                end
-            end
-
-            button.duration = duration
-            button.expires = expirationTime
-            button:SetScript("OnUpdate", ns.UpdateAuraTimer)
-        end
-    end
+function ns.AddBuffGroup(auras, num, onlyShowPlayer, forceNewLine)
+    auras:AddGroup(onlyShowPlayer and "HELPFUL|PLAYER" or "HELPFUL", {
+        maxFrameCount = num,
+        showStealable = true,
+        layout = {forceNewLine = forceNewLine},
+    })
 end
 
-ns.UpdateAuraIcons = function(auras, button)
-    if not button.Shadow then
-        button:SetFrameLevel(1)
+    -- Portrait timers: important auras (ns.PortraitTimerDB) are shown on top of the portrait.
 
-        button.overlay:SetTexture(config.media.border)
-        button.overlay:SetTexCoord(0, 1, 0, 1)
-        button.overlay:ClearAllPoints()
-        button.overlay:SetPoint("TOPRIGHT", button.icon, 1.35, 1.35)
-        button.overlay:SetPoint("BOTTOMLEFT", button.icon, -1.35, -1.35)
+local function CreatePortraitTimerButton(element, options, button)
+    button:SetAllPoints(element)
+    button:EnableMouse(false)
 
-        button.count:SetFont(config.font.normal, 11, "OUTLINE")
-        button.count:SetDrawLayer("OVERLAY",7)
-        button.count:SetShadowOffset(0, 0)
-        button.count:ClearAllPoints()
-        button.count:SetPoint("BOTTOMRIGHT", button.icon, 2, 0)
+    local mask = button:CreateMaskTexture()
+    mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetAllPoints(button)
 
-        if config.show.disableCooldown then
-            button.cd:SetReverse(false)
-            button.cd:SetDrawEdge(true)
-            button.cd:ClearAllPoints()
-            button.cd:SetHideCountdownNumbers(true)
-            button.cd:SetPoint("TOPRIGHT", button.icon, "TOPRIGHT", -1, -1)
-            button.cd:SetPoint("BOTTOMLEFT", button.icon, "BOTTOMLEFT", 1, 1)
-        else
-            auras.disableCooldown = true
+    local icon = button:CreateTexture(nil, "BACKGROUND")
+    icon:SetAllPoints(button)
+    icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
+    icon:AddMaskTexture(mask)
+    button.Icon = icon
+    button:SetIcon(icon)
 
-            button.remaining = button:CreateFontString(nil, "OVERLAY")
-            button.remaining:SetFont(config.font.normal, 8, "OUTLINE")
-            button.remaining:SetShadowOffset(0, 0)
-            button.remaining:SetPoint("TOP", button.icon, 0, 2)
-        end
+    local cooldown = CreateFrame("Cooldown", nil, button, "CooldownFrameTemplate")
+    cooldown:SetAllPoints(button)
+    cooldown:SetHideCountdownNumbers(false)
+    cooldown:SetDrawSwipe(false)
+    button.Cooldown = cooldown
+    button:SetDurationCooldown(cooldown)
+end
 
-        button.Shadow = button:CreateTexture(nil, "BACKGROUND")
-        button.Shadow:SetPoint("TOPLEFT", button.icon, "TOPLEFT", -4, 4)
-        button.Shadow:SetPoint("BOTTOMRIGHT", button.icon, "BOTTOMRIGHT", 4, -4)
-        button.Shadow:SetTexture("Interface\\AddOns\\oUF_Neav\\media\\borderBackground")
-        button.Shadow:SetVertexColor(0, 0, 0, 1)
+function ns.CreatePortraitTimer(self)
+    local auras = self:CreateAuras()
+    auras:SetAllPoints(self.Portrait)
+    auras:SetFrameLevel(self.Health:GetFrameLevel() + 2)
+    auras.CreateButton = CreatePortraitTimerButton
 
-        if button.stealable then
-            local stealable = button:CreateTexture(nil, "OVERLAY")
-            stealable:SetPoint("TOPLEFT", -4, 4)
-            stealable:SetPoint("BOTTOMRIGHT", 4, -4)
-        end
+    local candidateFilters = {includeSpellIDs = ns.PortraitTimerDB}
 
-        button.overlay.Hide = function(self)
-            self:SetVertexColor(0.5, 0.5, 0.5, 1)
-        end
+    for _, filter in ipairs({"HELPFUL", "HARMFUL"}) do
+        local slotKey = auras:AddSlot(filter, {candidateFilters = candidateFilters})
+        local slot = auras:GetAuraSlotFrame(slotKey)
+        slot:ClearAllPoints()
+        slot:SetAllPoints(auras)
     end
+
+    return auras
 end

@@ -17,8 +17,10 @@ local _, ns = ...
 local oUF = ns.oUF or oUF
 
 local function Update(self, event)
-    if UnitIsWildBattlePet(self.unit) or UnitIsBattlePetCompanion(self.unit) then
-        local petType = UnitBattlePetType(self.unit)
+    local unit = self.__unit
+
+    if unit and (UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) and PET_TYPE_SUFFIX[UnitBattlePetType(unit)] then
+        local petType = UnitBattlePetType(unit)
         self.petBattleIcon:SetTexture("Interface\\TargetingFrame\\PetBadge-"..PET_TYPE_SUFFIX[petType])
         self.petBattleIcon:Show()
     else
@@ -37,13 +39,17 @@ local function Path(self, ...)
     return (self.petBattleIcon.Override or Update) (self, ...)
 end
 
+local function ForceUpdate(element)
+    return Path(element.__owner, "ForceUpdate")
+end
+
 local function Enable(self)
     local element = self.petBattleIcon
     if element then
         element.__owner = self
         element.ForceUpdate = ForceUpdate
 
-        if self.unit == "player" then
+        if self.__unit == "target" then
             self:RegisterEvent("PLAYER_ENTERING_WORLD", Path, true)
             self:RegisterEvent("PLAYER_TARGET_CHANGED", Path, true)
         end

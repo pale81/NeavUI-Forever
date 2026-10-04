@@ -82,8 +82,7 @@ local function CreateBossLayout(self, unit)
     self.Health:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
     self.Health:SetBackdropColor(0, 0, 0, 0.55)
 
-    self.Health.frequentUpdates = true
-    self.Health.Smooth = true
+    self.Health.smoothing = Enum.StatusBarInterpolation.ExponentialEaseOut
 
     self.Health.PostUpdate = UpdateHealth
 
@@ -107,7 +106,7 @@ local function CreateBossLayout(self, unit)
 
     self.Power.PostUpdate = UpdatePower
     self.Power.frequentUpdates = true
-    self.Power.Smooth = true
+    self.Power.smoothing = Enum.StatusBarInterpolation.ExponentialEaseOut
 
     self.Power.colorPower = true
 
@@ -126,7 +125,7 @@ local function CreateBossLayout(self, unit)
     self.Name:SetSize(110, 10)
     self.Name:SetPoint("BOTTOM", self.Health, "TOP", 0, 6)
 
-    self:Tag(self.Name, "[neav:name]")
+    self:Tag(self.Name, "[neav:namecolor][neav:name]|r")
 
         -- Name Background
 
@@ -165,19 +164,14 @@ local function CreateBossLayout(self, unit)
 
         -- Buffs
 
-    self.Buffs = CreateFrame("Frame", "$parentBuffs", self)
-    self.Buffs.size = 25
-    self.Buffs:SetHeight(self.Buffs.size * 1.1)
-    self.Buffs:SetWidth(self.Buffs.size * 5)
-    self.Buffs:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -5)
-    self.Buffs.initialAnchor = "TOPLEFT"
-    self.Buffs["growth-x"] = "RIGHT"
-    self.Buffs["growth-y"] = "DOWN"
-    self.Buffs.num = 4
-    self.Buffs.spacing = 4.5
-
-    self.Buffs.PostCreateIcon = ns.UpdateAuraIcons
-    self.Buffs.PostUpdateIcon = ns.PostUpdateIcon
+    self.Buffs = ns.CreateAuras(self, {
+        point = {"TOPLEFT", self, "BOTTOMLEFT", 0, -5},
+        width = 25 * 5,
+        height = 25 * 1.1,
+        size = 25,
+        spacing = 4.5,
+    })
+    ns.AddBuffGroup(self.Buffs, 4, false)
 
         -- Castbar
 
@@ -201,17 +195,7 @@ local function CreateBossLayout(self, unit)
         self.Castbar:SetBeautyBorderPadding(3)
 
         ns.CreateCastbarStrings(self, false)
-
-        self.Castbar.CustomDelayText = ns.CustomDelayText
-        self.Castbar.CustomTimeText = ns.CustomTimeText
-
-        self.Castbar.PostCastStart = ns.UpdateCastbarColor
-        self.Castbar.PostCastInterruptible = ns.UpdateCastbarColor
-
-        self.Castbar.PostCastFailed = function(self, unit)
-            self:SetStatusBarColor(unpack(self.failedCastColor))
-            self.Background:SetVertexColor(self.failedCastColor[1]*0.3, self.failedCastColor[2]*0.3, self.failedCastColor[3]*0.3)
-        end
+        ns.SetupCastbarCallbacks(self.Castbar)
     end
 
         -- Mouseover Text

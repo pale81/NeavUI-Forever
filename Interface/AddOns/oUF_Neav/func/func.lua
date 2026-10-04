@@ -11,6 +11,20 @@ local format = string.format
 
 local day, hour, minute = 86400, 3600, 60
 
+    -- Red - yellow - green gradient for 0 - 1.
+
+local function ColorGradient(perc)
+    if perc >= 1 then
+        return 0, 1, 0
+    elseif perc <= 0 then
+        return 1, 0, 0
+    elseif perc < 0.5 then
+        return 1, perc * 2, 0
+    else
+        return (1 - perc) * 2, 1, 0
+    end
+end
+
 local function FormatValue(value)
     if value < 1e3 then
         return floor(value)
@@ -80,7 +94,7 @@ local function GetFormattedText(text, cur, max, alt)
         text = gsub(text, "$alt", ((alt > 0) and format("%s", FormatValue(alt)) or ""))
     end
 
-    local r, g, b = oUF.ColorGradient(cur, max, unpack(oUF.smoothGradient or oUF.colors.smooth))
+    local r, g, b = ColorGradient(perc / 100)
     text = gsub(text, "$cur", format("%s", (cur > 0 and FormatValue(cur)) or ""))
     text = gsub(text, "$max", format("%s", FormatValue(max)))
     text = gsub(text, "$deficit", format("%s", DeficitValue(max-cur)))
@@ -92,6 +106,74 @@ local function GetFormattedText(text, cur, max, alt)
     return text
 end
 
+    -- Health and power values can be secret in restricted content. Secret values can't be
+    -- compared or used in arithmetic, so the tag string is turned into a format string and
+    -- the values are formatted with secret-safe API (string.format accepts secret values).
+
+local SECRET_TAGS = {"$smartcolorperc", "$colorperc", "$smartperc", "$perc", "$deficit", "$cur", "$max", "$alt"}
+
+local function GetSecretFormattedText(text, values)
+    local args = {}
+
+    text = gsub(text, "%%", "%%%%")
+
+    local position = 1
+    local formatString = ""
+
+    while position <= #text do
+        local found
+
+        if text:sub(position, position) == "$" then
+            for _, tag in ipairs(SECRET_TAGS) do
+                if text:sub(position, position + #tag - 1) == tag then
+                    found = tag
+                    break
+                end
+            end
+        end
+
+        if found then
+            formatString = formatString.."%s"
+            args[#args + 1] = values[found] or ""
+            position = position + #found
+        else
+            formatString = formatString..text:sub(position, position)
+            position = position + 1
+        end
+    end
+
+    return format(formatString, unpack(args))
+end
+
+local function GetSecretHealthValues(unit, cur, max)
+    local perc = UnitHealthPercent(unit, true, CurveConstants.ScaleTo100)
+
+    return {
+        ["$cur"] = AbbreviateNumbers(cur),
+        ["$max"] = AbbreviateNumbers(max),
+        ["$deficit"] = C_StringUtil.TruncateWhenZero(UnitHealthMissing(unit, true)),
+        ["$perc"] = format("%d%%", perc),
+        ["$smartperc"] = format("%d", perc),
+        ["$colorperc"] = format("%d%%", perc),
+        ["$smartcolorperc"] = format("%d", perc),
+    }
+end
+
+local function GetSecretPowerValues(unit, cur, max)
+    local perc = UnitPowerPercent(unit, nil, true, CurveConstants.ScaleTo100)
+
+    return {
+        ["$cur"] = C_StringUtil.TruncateWhenZero(AbbreviateNumbers(cur)),
+        ["$max"] = AbbreviateNumbers(max),
+        ["$deficit"] = C_StringUtil.TruncateWhenZero(UnitPowerMissing(unit)),
+        ["$perc"] = format("%d%%", perc),
+        ["$smartperc"] = format("%d", perc),
+        ["$colorperc"] = format("%d%%", perc),
+        ["$smartcolorperc"] = format("%d", perc),
+        ["$alt"] = "",
+    }
+end
+
 ns.GetHealthText = function(unit, cur, max)
     local uconf = config.units[ns.cUnit(unit)]
 
@@ -100,10 +182,17 @@ ns.GetHealthText = function(unit, cur, max)
         max = UnitHealthMax(unit)
     end
 
-    local healthString
     if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
-        healthString = GetUnitStatus(unit)
-    elseif cur == max and uconf and uconf.healthTagFull then
+        return GetUnitStatus(unit)
+    end
+
+    if issecretvalue(cur) or issecretvalue(max) then
+        local values = GetSecretHealthValues(unit, cur, max)
+        return GetSecretFormattedText(uconf and uconf.healthTag or "$cur/$max", values)
+    end
+
+    local healthString
+    if cur == max and uconf and uconf.healthTagFull then
         healthString = GetFormattedText(uconf.healthTagFull, cur, max)
     elseif uconf and uconf.healthTag then
         healthString = GetFormattedText(uconf.healthTag, cur, max)
@@ -122,25 +211,37 @@ ns.GetPowerText = function(unit, cur, max)
     local uconf = config.units[ns.cUnit(unit)]
 
     if not cur then
-        max = UnitPower(unit)
-        cur = UnitPowerMax(unit)
+        cur = UnitPower(unit)
+        max = UnitPowerMax(unit)
+    end
+
+    if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
+        return ""
+    end
+
+    local powerType = UnitPowerType(unit)
+    local hasMana = powerType == Enum.PowerType.Mana and not UnitHasVehicleUI(unit)
+
+    if issecretvalue(cur) or issecretvalue(max) then
+        local values = GetSecretPowerValues(unit, cur, max)
+        local tag = uconf and ((not hasMana and uconf.powerTagNoMana) or uconf.powerTag) or "$cur/$max"
+        return GetSecretFormattedText(tag, values)
     end
 
     local alt = UnitPower(unit, ALTERNATE_POWER_INDEX)
-    local powerType = UnitPowerType(unit)
+    if issecretvalue(alt) then
+        alt = nil
+    end
 
     local powerString
-    if UnitIsDeadOrGhost(unit) or not UnitIsConnected(unit) then
+    if max == 0 then
         powerString = ""
-    elseif max == 0 then
-        powerString = ""
-    elseif not UnitHasMana(unit) or powerType ~= 0 or UnitHasVehicleUI(unit) and uconf and uconf.powerTagNoMana then
+    elseif not hasMana and uconf and uconf.powerTagNoMana then
         powerString = GetFormattedText(uconf.powerTagNoMana, cur, max, alt)
     elseif (cur == max) and uconf and uconf.powerTagFull then
         powerString = GetFormattedText(uconf.powerTagFull, cur, max, alt)
     elseif uconf and uconf.powerTag then
         powerString = GetFormattedText(uconf.powerTag, cur, max, alt)
-
     else
         if cur == max then
             powerString = FormatValue(cur)

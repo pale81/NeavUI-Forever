@@ -1,6 +1,5 @@
 
 local _, ns = ...
-local oUF = ns.oUF or oUF
 
 ns.PortraitTimerDB = {
 
@@ -107,100 +106,4 @@ ns.PortraitTimerDB = {
     [121557] = true,   -- Feather
 }
 
-local Update = function(self, event, unit)
-    if self.unit ~= unit or self.IsTargetFrame then
-        return
-    end
-
-    local element = self.PortraitTimer
-    local name, texture, _, _, duration, expirationTime, _, _, _, spellId
-    local results
-
-    for i = 1, 40 do
-        name, texture, _, _, duration, expirationTime, _, _, _, spellId = UnitBuff(unit, i)
-
-        if name then
-            results = ns.PortraitTimerDB[spellId]
-
-            if results then
-                element.Icon:SetTexture(texture)
-                CooldownFrame_Set(element.cooldownFrame, expirationTime - duration, duration, duration > 0)
-                element:Show()
-
-                if self.CombatFeedbackText then
-                    self.CombatFeedbackText.maxAlpha = 0
-                end
-                return
-            end
-        end
-    end
-
-    for i = 1, 40 do
-        name, texture, _, _, duration, expirationTime, _, _, _, spellId = UnitDebuff(unit, i)
-
-        if name then
-            results = ns.PortraitTimerDB[spellId]
-
-            if results then
-                element.Icon:SetTexture(texture)
-                CooldownFrame_Set(element.cooldownFrame, expirationTime - duration, duration, duration > 0)
-                element:Show()
-
-                if self.CombatFeedbackText then
-                    self.CombatFeedbackText.maxAlpha = 0
-                end
-                return
-            end
-        end
-    end
-
-    element:Hide()
-    if self.CombatFeedbackText then
-        self.CombatFeedbackText.maxAlpha = 1
-    end
-
-    if event == "PLAYER_ENTERING_WORLD" then
-        CooldownFrame_Set(element.cooldownFrame, 1, 1, 1)
-    end
-end
-
-local Enable = function(self)
-    local element = self.PortraitTimer
-
-    if element then
-        self:RegisterEvent("UNIT_AURA", Update)
-        self:RegisterEvent("PLAYER_ENTERING_WORLD", Update, true)
-
-        if not element.Icon then
-            local mask = element:CreateMaskTexture()
-            mask:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-            mask:SetAllPoints(element)
-
-            element.Icon = element:CreateTexture(nil, "BACKGROUND")
-            element.Icon:SetAllPoints(element)
-            element.Icon:SetTexCoord(0.07, 0.93, 0.07, 0.93)
-            element.Icon:AddMaskTexture(mask)
-        end
-
-        if not element.cooldownFrame then
-            element.cooldownFrame = CreateFrame("Cooldown", nil, element, "CooldownFrameTemplate")
-            element.cooldownFrame:SetAllPoints(element)
-            element.cooldownFrame:SetHideCountdownNumbers(false)
-            element.cooldownFrame:SetDrawSwipe(false)
-        end
-
-        element:Hide()
-
-        return true
-    end
-end
-
-local Disable = function(self)
-    local element = self.PortraitTimer
-    if element then
-        self:UnregisterEvent("UNIT_AURA", Update)
-        self:UnregisterEvent("PLAYER_ENTERING_WORLD", Update)
-    end
-end
-
-oUF:AddElement("PortraitTimer", Update, Enable, Disable)
+    -- The auras are displayed by ns.CreatePortraitTimer (func/aura.lua).
