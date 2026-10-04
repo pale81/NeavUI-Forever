@@ -1,59 +1,24 @@
 local _, nMainbar = ...
 local cfg = nMainbar.Config
 
-    -- Experience Bar
+    -- Status tracking bars (experience, reputation, honor, ...)
 
-hooksecurefunc(ExpBarMixin, "OnLoad", function(self)
-    self.OverlayFrame.Text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
-    self.OverlayFrame.Text:SetShadowOffset(0, 0)
-end)
-
-    -- Azerite Bar
-
-hooksecurefunc(AzeriteBarMixin, "OnLoad", function(self)
-    self.OverlayFrame.Text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
-    self.OverlayFrame.Text:SetShadowOffset(0, 0)
-end)
-
-    -- Reputation Bar
-
-hooksecurefunc(ReputationBarMixin, "OnLoad", function(self)
-    self.OverlayFrame.Text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
-    self.OverlayFrame.Text:SetShadowOffset(0, 0)
-
-    self:SetScript("OnMouseDown", function(self, button)
-        if not nMainbar:IsTaintable() and IsAltKeyDown() then
-            ToggleCharacter("ReputationFrame")
+for _, container in pairs(StatusTrackingBarManager.barContainers) do
+    for barIndex, bar in pairs(container.bars) do
+        local text = bar.OverlayFrame and bar.OverlayFrame.Text
+        if text then
+            text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
+            text:SetShadowOffset(0, 0)
         end
-    end)
-end)
 
-    -- Honor Bar
+            -- Alt + click on the reputation bar opens the reputation frame.
 
-hooksecurefunc(HonorBarMixin, "OnLoad", function(self)
-    self.OverlayFrame.Text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
-    self.OverlayFrame.Text:SetShadowOffset(0, 0)
-
-    self:SetScript("OnMouseDown", function(self, button)
-        if not nMainbar:IsTaintable() and IsAltKeyDown() then
-            ToggleTalentFrame(PVP_TALENTS_TAB)
+        if barIndex == StatusTrackingBarInfo.BarsEnum.Reputation then
+            bar:HookScript("OnMouseDown", function(self, button)
+                if not nMainbar:IsTaintable() and IsAltKeyDown() then
+                    ToggleCharacter("ReputationFrame")
+                end
+            end)
         end
-    end)
-end)
-
-    -- Legion Artifact Bar
-
-hooksecurefunc(ArtifactBarMixin, "OnLoad", function(self)
-    self.OverlayFrame.Text:SetFont(cfg.button.watchbarFont, cfg.button.watchbarFontsize, "OUTLINE")
-    self.OverlayFrame.Text:SetShadowOffset(0, 0)
-
-    self:SetScript("OnMouseDown", function(self, button)
-        if not nMainbar:IsTaintable() and IsAltKeyDown() then
-            if not ArtifactFrame or not ArtifactFrame:IsShown() then
-                ShowUIPanel(SocketInventoryItem(16))
-            elseif ArtifactFrame and ArtifactFrame:IsShown() then
-                HideUIPanel(ArtifactFrame)
-            end
-        end
-    end)
-end)
+    end
+end

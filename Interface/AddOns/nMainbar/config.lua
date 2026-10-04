@@ -1,8 +1,10 @@
 local _, nMainbar = ...
 
+    -- Position, size, number of buttons, visibility (incl. mouseover) and the
+    -- gryphons of all action bars are set with Edit Mode.
+
 nMainbar.Config = {
     showPicomenu = true,
-    useFakeBottomRightBar = true,
 
     button = {
         showVehicleKeybinds = true,
@@ -37,51 +39,7 @@ nMainbar.Config = {
         CountText = CreateColor(1.0, 1.0, 1.0, 1.0),
     },
 
-    MainMenuBar = {
-        moveableExtraBars = true,
-        hideGryphons = false,
-    },
-
     vehicleBar = {
         scale = 0.80,
-    },
-
-    petBar = {
-        mouseover = false,
-        scale = 1,
-        hiddenAlpha = 0,
-        alpha = 1,
-        vertical = false,
-    },
-
-    stanceBar = {
-        hide = false,
-        scale = 1,
-        alpha = 1,
-    },
-
-    possessBar = {
-        scale = 1,
-        alpha = 1,
-    },
-
-    multiBarRight = {
-        mouseover = false,
-        scale = 1,
-        hiddenAlpha = 0,
-        alpha = 1,
-    },
-
-    multiBarBottomLeft = {
-        mouseover = false,
-        hiddenAlpha = 0,
-        alpha = 1,
-    },
-
-    -- Only works with "useFakeBottomRightBar" option.
-    multiBarBottomRight = {
-        mouseover = false,
-        hiddenAlpha = 0,
-        alpha = 1,
     },
 }

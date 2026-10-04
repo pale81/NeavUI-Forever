@@ -5,525 +5,239 @@ if not cfg.showPicomenu then
     return
 end
 
-    -- Pico Menu Dropdown
+    -- Pico Menu
 
-local x, x2, n = nil, false
-local v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11, v12, v13, v14
-local BLOCKED_IN_COMBAT = "UI Action Blocked"
+local PICOMENU_TEXTURE = "Interface\\AddOns\\nMainbar\\Media\\picomenu\\"
 
-local menuFrame = CreateFrame("Frame", "picomenuDropDownMenu", MainMenuBar, "UIDropDownMenuTemplate")
+    -- The entries open the same panels as the (hidden) micro menu buttons. Buttons that
+    -- don't exist in this client or are disabled (e.g. by game rules) are skipped.
 
-local menuList = {
+local microButtons = {
+    "CharacterMicroButton",
+    "ProfessionMicroButton",
+    "SpellbookMicroButton",
+    "TalentMicroButton",
+    "PlayerSpellsMicroButton",
+    "AchievementMicroButton",
+    "QuestLogMicroButton",
+    "GuildMicroButton",
+    "LFDMicroButton",
+    "CollectionsMicroButton",
+    "EJMicroButton",
+    "HelpMicroButton",
+    "StoreMicroButton",
+}
+
+    -- Third-party addons
+
+local addonEntries = {
     {
-        text = MAINMENU_BUTTON,
-        isTitle = true,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = CHARACTER_BUTTON,
-        icon = "Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle",
-        func = function()
-            ToggleCharacter("PaperDollFrame")
+        text = "NeavRaid",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("oUF_NeavRaid")
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
+        func = function()
+            SlashCmdList["oUF_Neav_Raid_AnchorToggle"]("toggle")
+        end,
     },
     {
-        text = SPELLBOOK_ABILITIES_BUTTON,
-        icon = "Interface\\MINIMAP\\TRACKING\\Class",
+        text = "VuhDo",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("VuhDo")
+        end,
         func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleSpellBook(BOOKTYPE_SPELL)
-            else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+            SlashCmdList["VUHDO"]("toggle")
+        end,
+    },
+    {
+        text = "Grid",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Grid") or C_AddOns.IsAddOnLoaded("Grid2")
+        end,
+        func = function()
+            if C_AddOns.IsAddOnLoaded("Grid2") then
+                ToggleFrame(Grid2LayoutFrame)
+            elseif C_AddOns.IsAddOnLoaded("Grid") then
+                ToggleFrame(GridLayoutFrame)
             end
         end,
-        notCheckable = true,
-        disabled = nMainbar:IsTaintable(),
-        fontObject = Game13Font,
     },
     {
-        text = TALENTS,
-        icon = "Interface\\AddOns\\nMainbar\\Media\\picomenu\\picomenuTalents",
-        func = function()
-            ToggleTalentFrame()
+        text = "Omen",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Omen")
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = ACHIEVEMENT_BUTTON,
-        icon = "Interface\\AddOns\\nMainbar\\Media\\picomenu\\picomenuAchievement",
         func = function()
-            ToggleAchievementFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = QUESTLOG_BUTTON,
-        icon = "Interface\\GossipFrame\\ActiveQuestIcon",
-        func = function()
-            ToggleQuestLog()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = COMMUNITIES_FRAME_TITLE,
-        icon = "Interface\\GossipFrame\\TabardGossipIcon",
-        arg1 = IsInGuild("player"),
-        func = function()
-            ToggleGuildFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = SOCIAL_BUTTON,
-        icon = "Interface\\FriendsFrame\\PlusManz-BattleNet",
-        func = function()
-            ToggleFriendsFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = PLAYER_V_PLAYER,
-        icon = "Interface\\MINIMAP\\TRACKING\\BattleMaster",
-        func = function()
-            TogglePVPUI()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = DUNGEONS_BUTTON,
-        icon = "Interface\\LFGFRAME\\BattleNetWorking0",
-        func = function()
-            ToggleLFDParentFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = CHALLENGES,
-        icon = "Interface\\BUTTONS\\UI-GroupLoot-DE-Up",
-        func = function()
-            PVEFrame_ToggleFrame("ChallengesFrame",nil)
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = RAID,
-        icon = "Interface\\TARGETINGFRAME\\UI-TargetingFrame-Skull",
-        func = function()
-            ToggleRaidFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = MOUNTS,
-        icon = "Interface\\MINIMAP\\TRACKING\\StableMaster",
-        func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleCollectionsJournal(1)
+            if IsShiftKeyDown() then
+                Omen:Toggle()
             else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+                Omen:ShowConfig()
             end
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
     },
     {
-        text = PETS,
-        icon = "Interface\\MINIMAP\\TRACKING\\StableMaster",
+        text = "PhoenixStyle",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("PhoenixStyle")
+        end,
         func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleCollectionsJournal(2)
-            else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+            ToggleFrame(PSFmain1)
+            ToggleFrame(PSFmain2)
+            ToggleFrame(PSFmain3)
+        end,
+    },
+    {
+        text = "DBM",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("DBM-Core")
+        end,
+        func = function()
+            DBM:LoadGUI()
+        end,
+    },
+    {
+        text = "Skada",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Skada")
+        end,
+        func = function()
+            Skada:ToggleWindow()
+        end,
+    },
+    {
+        text = "Recount",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Recount")
+        end,
+        func = function()
+            ToggleFrame(Recount.MainWindow)
+            if Recount.MainWindow:IsShown() then
+                Recount:RefreshMainWindow()
             end
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
     },
     {
-        text = TOY_BOX,
-        icon = "Interface\\MINIMAP\\TRACKING\\Reagents",
+        text = "TinyDPS",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("TinyDPS")
+        end,
         func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleCollectionsJournal(3)
+            ToggleFrame(tdpsFrame)
+        end,
+    },
+    {
+        text = "Numeration",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Numeration")
+        end,
+        func = function()
+            if not IsShiftKeyDown() then
+                Numeration:ToggleVisibility()
             else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+                StaticPopup_Show("RESET_DATA")
             end
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
     },
     {
-        text = HEIRLOOMS,
-        icon = "Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle",
+        text = "AtlasLoot",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("AtlasLoot")
+        end,
         func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleCollectionsJournal(4)
+            AtlasLoot.GUI:Toggle()
+        end,
+    },
+    {
+        text = "Altoholic",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Altoholic")
+        end,
+        func = function()
+            ToggleFrame(AltoholicFrame)
+        end,
+    },
+    {
+        text = "Details",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("Details")
+        end,
+        func = function()
+            if not IsShiftKeyDown() then
+                _detalhes:ToggleWindow(1)
+                _detalhes:ToggleWindow(2)
             else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+                _detalhes.tabela_historico:resetar()
             end
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
     },
     {
-        text = WARDROBE,
-        icon = "Interface\\PaperDollInfoFrame\\UI-EquipmentManager-Toggle",
+        text = "BigWigs",
+        isLoaded = function()
+            return C_AddOns.IsAddOnLoaded("BigWigs")
+        end,
         func = function()
-            if not nMainbar:IsTaintable() then
-                ToggleCollectionsJournal(5)
+            if BigWigsOptions then
+                BigWigsOptions:Open()
             else
-                UIErrorsFrame:AddMessage(BLOCKED_IN_COMBAT, 1, 0, 0)
+                C_AddOns.LoadAddOn("BigWigs_Options")
+                BigWigsOptions:Open()
             end
         end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = ENCOUNTER_JOURNAL,
-        icon = "Interface\\MINIMAP\\TRACKING\\Profession",
-        func = function()
-            ToggleEncounterJournal()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = GM_EMAIL_NAME,
-        icon = "Interface\\CHATFRAME\\UI-ChatIcon-Blizz",
-        func = function()
-            ToggleHelpFrame()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {
-        text = BATTLEFIELD_MINIMAP,
-        colorCode = "|cff999999",
-        func = function()
-            ToggleBattlefieldMap()
-        end,
-        notCheckable = true,
-        fontObject = Game13Font,
     },
 }
 
-local addonMenuTable = {
-    {
-        text = "                               ",
-        isTitle = true,
-        notCheckable = true,
-        fontObject = Game13Font,
-    },
-    {   text = ADDONS,
-        hasArrow = true,
-        notCheckable = true,
-        fontObject = Game13Font,
-        menuList = {
-            {
-                text = ADDONS,
-                isTitle = true,
-                notCheckable = true,
-                fontObject = Game13Font,
-            },
-        }
-    }
-}
+local function GetMicroButtonText(button)
+    local text = button.tooltipText or button:GetName()
 
-local function UpdateAddOnTable()
-    if IsAddOnLoaded("oUF_NeavRaid") and not v1 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v1 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "NeavRaid",
-            func = function()
-                SlashCmdList["oUF_Neav_Raid_AnchorToggle"]("toggle")
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
+        -- Remove the key binding.
+    return (text:gsub("%s*|c%x%x%x%x%x%x%x%x%(.-%)|r", ""))
+end
+
+local function GeneratePicoMenu(owner, rootDescription)
+    rootDescription:CreateTitle(MAINMENU_BUTTON)
+
+    for _, buttonName in ipairs(microButtons) do
+        local button = _G[buttonName]
+
+        if button and button:IsShown() and button:IsEnabled() then
+            rootDescription:CreateButton(GetMicroButtonText(button), function()
+                button:Click()
+            end)
+        end
     end
 
-    if IsAddOnLoaded("VuhDo") and not v2 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v2 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "VuhDo",
-            func = function()
-                SlashCmdList["VUHDO"]("toggle")
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
+    local loadedAddons = {}
+    for _, entry in ipairs(addonEntries) do
+        if entry.isLoaded() then
+            table.insert(loadedAddons, entry)
+        end
     end
 
-    if (IsAddOnLoaded("Grid") or IsAddOnLoaded("Grid2")) and not v3 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v3 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Grid",
-            func = function()
-                if IsAddOnLoaded("Grid2") then
-                    ToggleFrame(Grid2LayoutFrame)
-                elseif IsAddOnLoaded("Grid") then
-                    ToggleFrame(GridLayoutFrame)
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
+    if #loadedAddons > 0 then
+        rootDescription:CreateDivider()
 
-    if IsAddOnLoaded("Omen") and not v4 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v4 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Omen",
-            func = function()
-                if IsShiftKeyDown() then
-                    Omen:Toggle()
-                else
-                    Omen:ShowConfig()
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("PhoenixStyle") and not v5 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v5 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "PhoenixStyle",
-            func = function()
-                ToggleFrame(PSFmain1)
-                ToggleFrame(PSFmain2)
-                ToggleFrame(PSFmain3)
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("DBM-Core") and not v6 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v6 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "DBM",
-            func = function()
-                DBM:LoadGUI()
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("Skada") and not v7 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v7 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Skada",
-            func = function()
-                Skada:ToggleWindow()
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("Recount") and not v8 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v8 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Recount",
-            func = function()
-                ToggleFrame(Recount.MainWindow)
-                if Recount.MainWindow:IsShown() then
-                    Recount:RefreshMainWindow()
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("TinyDPS") and not v9 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v9 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "TinyDPS",
-            func = function()
-                ToggleFrame(tdpsFrame)
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("Numeration") and not v10 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v10 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Numeration",
-            func = function()
-                if not IsShiftKeyDown() then
-                    Numeration:ToggleVisibility()
-                else
-                    StaticPopup_Show("RESET_DATA")
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("AtlasLoot") and not v11 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v11 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "AtlasLoot",
-            func = function()
-                AtlasLoot.GUI:Toggle()
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("Altoholic") and not v12 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v12 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Altoholic",
-            func = function()
-                ToggleFrame(AltoholicFrame)
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("Details") and not v13 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v13 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "Details",
-            func = function()
-                if not IsShiftKeyDown() then
-                    _detalhes:ToggleWindow(1)
-                    _detalhes:ToggleWindow(2)
-                else
-                    _detalhes.tabela_historico:resetar()
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if IsAddOnLoaded("BigWigs") and not v14 then
-        x = true
-        n = (#addonMenuTable[2].menuList)+1
-        v14 = true
-        addonMenuTable[2].menuList[n] = {
-            text = "BigWigs",
-            func = function()
-                if BigWigsOptions then
-                    BigWigsOptions:Open()
-                else
-                    LoadAddOn("BigWigs_Options")
-                    BigWigsOptions:Open()
-                end
-            end,
-            notCheckable = true,
-            keepShownOnClick = true,
-            fontObject = Game13Font,
-        }
-    end
-
-    if x and not x2 then
-        table.insert(menuList, addonMenuTable[1])
-        table.insert(menuList, addonMenuTable[2])
-        x2 = true
+        local addonMenu = rootDescription:CreateButton(ADDONS)
+        for _, entry in ipairs(loadedAddons) do
+            addonMenu:CreateButton(entry.text, entry.func)
+        end
     end
 end
 
     -- Pico Menu Button
 
-local picoMenu = CreateFrame("Button", nil, MainMenuBar)
+local picoMenu = CreateFrame("Button", "nMainbarPicoMenu", UIParent)
 picoMenu:SetFrameStrata("MEDIUM")
 picoMenu:SetFrameLevel(3)
 picoMenu:SetToplevel(true)
 picoMenu:SetSize(30, 30)
-picoMenu:SetPoint("BOTTOM", MainMenuBarArtFrame.RightEndCap, 0, 8)
-picoMenu:RegisterForClicks("Anyup")
-picoMenu:RegisterEvent("ADDON_LOADED")
-picoMenu:RegisterEvent("PLAYER_ENTERING_WORLD")
-picoMenu:RegisterEvent("PLAYER_LEVEL_UP")
-picoMenu:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-picoMenu:RegisterEvent("PLAYER_TALENT_UPDATE")
+picoMenu:SetPoint("BOTTOMLEFT", MainActionBar, "BOTTOMRIGHT", 8, 0)
+picoMenu:RegisterForClicks("AnyUp")
 
-picoMenu:SetNormalTexture("Interface\\AddOns\\nMainbar\\Media\\picomenu\\picomenuNormal")
+picoMenu:SetNormalTexture(PICOMENU_TEXTURE.."picomenuNormal")
 picoMenu:GetNormalTexture():SetSize(30, 30)
 
-picoMenu:SetHighlightTexture("Interface\\AddOns\\nMainbar\\Media\\picomenu\\picomenuHighlight")
+picoMenu:SetHighlightTexture(PICOMENU_TEXTURE.."picomenuHighlight")
 picoMenu:GetHighlightTexture():SetAllPoints(picoMenu:GetNormalTexture())
-
--- TODO: MicroButtonAlertTemplate is gone.
--- local alertFrame = CreateFrame("Frame", "nMainbarAlertFrame", picoMenu, "MicroButtonAlertTemplate")
--- alertFrame:SetSize(220,100)
--- alertFrame.Text:SetText(TALENT_MICRO_BUTTON_UNSPENT_TALENTS)
--- alertFrame:SetPoint("BOTTOM", picoMenu, "TOP", 0, 10)
-
-picoMenu:SetScript("OnEvent", function(self, event, ...)
-    if event == "ADDON_LOADED" then
-        UpdateAddOnTable()
-    elseif event == "PLAYER_ENTERING_WORLD" or event == "PLAYER_LEVEL_UP" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
-        -- if C_SpecializationInfo.CanPlayerUseTalentUI() and GetNumUnspentTalents() > 0 then
-        --     alertFrame:Show()
-        -- else
-        --     alertFrame:Hide()
-        -- end
-    end
-end)
 
 picoMenu:SetScript("OnMouseDown", function(self)
     self:GetNormalTexture():ClearAllPoints()
@@ -534,21 +248,11 @@ picoMenu:SetScript("OnMouseUp", function(self, button)
     self:GetNormalTexture():ClearAllPoints()
     self:GetNormalTexture():SetPoint("CENTER")
 
-    if button == "LeftButton" then
-        if self:IsMouseOver() then
-            if DropDownList1:IsShown() then
-                DropDownList1:Hide()
-            else
-                EasyMenu(menuList, menuFrame, self, 3, 290, "MENU", 5)
-            end
-        end
-    else
-        if self:IsMouseOver() then
-            if not GameMenuFrame:IsVisible() then
-                ShowUIPanel(GameMenuFrame)
-            else
-                HideUIPanel(GameMenuFrame)
-            end
+    if self:IsMouseOver() then
+        if button == "LeftButton" then
+            MenuUtil.CreateContextMenu(self, GeneratePicoMenu)
+        else
+            MainMenuMicroButton:Click()
         end
     end
 
