@@ -602,15 +602,67 @@ end
 
     --// Info Frame
 
-local function AddonMem()
+    -- CPU usage of the addons (share of the recent frame time) from the addon
+    -- profiler, the memory usage if the profiler is not available.
+
+local CPU_METRIC = Enum.AddOnProfilerMetric and Enum.AddOnProfilerMetric.RecentAverageTime
+
+local function IsProfilerEnabled()
+    return CPU_METRIC and C_AddOnProfiler and C_AddOnProfiler.IsEnabled()
+end
+
+local function InsertAddon(name, value)
+    for j = 1, NUM_ADDONS_TO_DISPLAY, 1 do
+        if value > AddonTable[j].value then
+            for k = NUM_ADDONS_TO_DISPLAY, 1, -1 do
+                if k == j then
+                    AddonTable[k].value = value
+                    AddonTable[k].name = name
+                    break
+                elseif k ~= 1 then
+                    AddonTable[k].value = AddonTable[k-1].value
+                    AddonTable[k].name = AddonTable[k-1].name
+                end
+            end
+            break
+        end
+    end
+end
+
+local function AddonUsage()
+    for i=1, NUM_ADDONS_TO_DISPLAY, 1 do
+        AddonTable[i].value = 0
+    end
+
+    if IsProfilerEnabled() then
+        local appValue = C_AddOnProfiler.GetApplicationMetric(CPU_METRIC)
+        local overallValue = C_AddOnProfiler.GetOverallMetric(CPU_METRIC)
+
+        if appValue <= 0 then
+            return 0
+        end
+
+        for i=1, C_AddOns.GetNumAddOns(), 1 do
+            if C_AddOns.IsAddOnLoaded(i) then
+                local name = C_AddOns.GetAddOnInfo(i)
+                local addonValue = C_AddOnProfiler.GetAddOnMetric(name, CPU_METRIC)
+
+                    -- Same calculation as the performance values of the addon list.
+
+                local relativeTotal = appValue - overallValue + addonValue
+                if addonValue > 0 and relativeTotal > 0 then
+                    InsertAddon(name, addonValue / relativeTotal * 100)
+                end
+            end
+        end
+
+        return overallValue / appValue * 100
+    end
+
     local totalMem = 0
 
     if IsAltKeyDown() then
         collectgarbage()
-    end
-
-    for i=1, NUM_ADDONS_TO_DISPLAY, 1 do
-        AddonTable[i].value = 0
     end
 
     UpdateAddOnMemoryUsage()
@@ -618,24 +670,19 @@ local function AddonMem()
     for i=1, C_AddOns.GetNumAddOns(), 1 do
         local mem = GetAddOnMemoryUsage(i)
         totalMem = totalMem + mem
-        for j = 1, NUM_ADDONS_TO_DISPLAY, 1 do
-            if mem > AddonTable[j].value then
-                for k = NUM_ADDONS_TO_DISPLAY, 1, -1 do
-                    if k == j then
-                        AddonTable[k].value = mem
-                        AddonTable[k].name = C_AddOns.GetAddOnInfo(i)
-                        break
-                    elseif k ~= 1 then
-                        AddonTable[k].value = AddonTable[k-1].value
-                        AddonTable[k].name = AddonTable[k-1].name
-                    end
-                end
-                break
-            end
-        end
+        InsertAddon(C_AddOns.GetAddOnInfo(i), mem)
     end
 
     return totalMem
+end
+
+local function FormatPercent(value)
+    if value >= 10 then
+        return format("%.0f %%", value)
+    elseif value >= 0.01 then
+        return format("%.2f %%", value)
+    end
+    return "< 0.01 %"
 end
 
 local function NumberOfActiveAddon()
@@ -664,7 +711,9 @@ function nMinimap_UpdateMemoryButton(entry)
     if value ~= 0 then
         entry.LeftText:SetText(name)
 
-        if value > 1000 then
+        if IsProfilerEnabled() then
+            entry.RightText:SetText(FormatPercent(value))
+        elseif value > 1000 then
             entry.RightText:SetFormattedText("%.2f MB", value/1000)
         else
             entry.RightText:SetFormattedText("%.0f KB", value)
@@ -731,7 +780,7 @@ function nMinimapTab_Memory_UpdateScrollFrame()
 end
 
 function nMinimapTab_Info_ShowTooltip(self)
-    local totalMem = AddonMem()
+    local total = AddonUsage()
 
     GameTooltip:ClearLines()
     GameTooltip:ClearAllPoints()
@@ -764,9 +813,13 @@ function nMinimapTab_Info_ShowTooltip(self)
         GameTooltip:AddDoubleLine(bandwidthText, downloadText, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0)
     end
 
-    -- Memory
+    -- CPU usage (memory usage without the addon profiler)
     GameTooltip:AddLine(" ")
-    GameTooltip:AddLine(format(TOTAL_MEM_MB_ABBR, totalMem/1000), 1.0, 1.0, 1.0)
+    if IsProfilerEnabled() then
+        GameTooltip:AddLine(format(ADDON_LIST_PERFORMANCE_CURRENT_CPU or "CPU: %s", FormatPercent(total)), 1.0, 1.0, 1.0)
+    else
+        GameTooltip:AddLine(format(TOTAL_MEM_MB_ABBR, total/1000), 1.0, 1.0, 1.0)
+    end
 
     if NUM_ADDONS_TO_DISPLAY > 0 then
         nMinimapTab_Memory_UpdateScrollFrame()
