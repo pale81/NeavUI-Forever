@@ -46,6 +46,9 @@ globals = {
     "_detalhes",
     "BigWigsOptions",
 
+    -- !Colorz.
+    "Colorz_GetUnitColor",
+
     -- nCore.
     "SLASH_ACTIONCAM1",
     "SLASH_AlertFrameAnchor_AnchorToggle1",
@@ -168,6 +171,11 @@ stds.wow = {
         C_ClassColor = {
             fields = {
                 "GetClassColor",
+            }
+        },
+        C_ColorUtil = {
+            fields = {
+                "WrapTextInColor",
             }
         },
         C_CurveUtil = {

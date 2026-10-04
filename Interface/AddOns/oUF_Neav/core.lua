@@ -274,7 +274,7 @@ local function UpdateHealth(Health, unit, cur, max)
 
     if unit == "target" or unit == "focus" then
         if self.Name.Bg then
-            self.Name.Bg:SetVertexColor(GameTooltip_UnitColor(unit))
+            self.Name.Bg:SetVertexColor(ns.GetUnitColor(unit))
         end
     end
 
@@ -704,7 +704,7 @@ local function CreateUnitLayout(self, unit)
     self.Name:SetJustifyH("CENTER")
     self.Name:SetHeight(10)
 
-    self:Tag(self.Name, "[neav:namecolor][neav:name]|r")
+    self:Tag(self.Name, "[neav:name]")
 
     if unit == "player" then
         self.Name:SetWidth(110)
