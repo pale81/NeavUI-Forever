@@ -3,7 +3,7 @@ local _, nBuff = ...
     -- Position, icon size, icons per row and padding are set with Edit Mode.
 
 nBuff.Config = {
-    buffBorderColor = {1, 1, 1},
+    buffBorderColor = {1.0, 0.78, 0.52},          -- Bronze like the gryphons, {1, 1, 1} = original gray
 
     buffFontSize = 14,
     buffCountSize = 16,
