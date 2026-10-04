@@ -512,6 +512,7 @@ local function CreateUnitLayout(self, unit)
         -- Texture
 
     self.Texture = self:CreateTexture("$parentFrameTexture", "BORDER")
+    self.Texture:SetVertexColor(unpack(config.media.frameColor))
 
     if unit == "player" then
         if config.units.player.style == "NORMAL" then
@@ -950,6 +951,7 @@ local function CreateUnitLayout(self, unit)
 
             self.AdditionalPower.Texture = self.AdditionalPower:CreateTexture("$parentAdditionalPowerTexture", "ARTWORK")
             self.AdditionalPower.Texture:SetTexture("Interface\\AddOns\\oUF_Neav\\media\\AdditionalPowerTexture")
+            self.AdditionalPower.Texture:SetVertexColor(unpack(config.media.frameColor))
             self.AdditionalPower.Texture:SetSize(104, 28)
             self.AdditionalPower.Texture:SetPoint("TOP", self.Power, "BOTTOM", 0, 6)
 

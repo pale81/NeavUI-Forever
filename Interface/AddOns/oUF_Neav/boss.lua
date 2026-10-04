@@ -71,6 +71,7 @@ local function CreateBossLayout(self, unit)
         -- Texture
 
     self.Texture = self.Health:CreateTexture("$parentTexture", "ARTWORK")
+    self.Texture:SetVertexColor(unpack(config.media.frameColor))
     self.Texture:SetSize(250, 129)
     self.Texture:SetPoint("CENTER", self, 31, -24)
     self.Texture:SetTexture("Interface\\TargetingFrame\\UI-UnitFrame-Boss")
