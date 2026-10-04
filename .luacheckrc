@@ -190,6 +190,11 @@ stds.wow = {
                 "IsEnabled",
             }
         },
+        C_Sound = {
+            fields = {
+                "PlayVocalErrorSound",
+            }
+        },
         C_Texture = {
             fields = {
                 "GetAtlasInfo",
@@ -365,6 +370,7 @@ stds.wow = {
         "ChatFrame1Tab",
         "ChatFrame2",
         "ColorPickerFrame",
+        "GetGameMessageInfo",
         "tContains",
         "ADDON_LIST_PERFORMANCE_CURRENT_CPU",
         "AddonCompartmentFrame",

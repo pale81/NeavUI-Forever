@@ -61,10 +61,37 @@ function nCore:ErrorFilter()
         end
     end
 
+        -- The default error frame no longer gets the event, so the error sound and
+        -- the vocal error ("Not enough mana") of the character are played here, at
+        -- most once per second for the same error.
+
+    local lastSound = {}
+
+    local function PlayErrorSound(messageType)
+        if issecretvalue(messageType) then
+            return
+        end
+
+        local now = GetTime()
+        if lastSound[messageType] and now - lastSound[messageType] < 1 then
+            return
+        end
+        lastSound[messageType] = now
+
+        local _, soundKitID, voiceID = GetGameMessageInfo(messageType)
+        if voiceID then
+            C_Sound.PlayVocalErrorSound(voiceID)
+        elseif soundKitID then
+            PlaySound(soundKitID)
+        end
+    end
+
     local f = CreateFrame("Frame")
     f:RegisterEvent("UI_ERROR_MESSAGE")
 
     f:SetScript("OnEvent", function(self, event, messageType, message)
+        PlayErrorSound(messageType)
+
         if issecretvalue(messageType) then
             UIErrorsFrame:AddMessage(message, 1, .1, .1)
         elseif nCoreDB.ErrorFilter and not ignoreList[messageType] then
