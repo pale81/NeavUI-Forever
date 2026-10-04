@@ -42,8 +42,12 @@ Options.OnRefresh = function(self)
     end
 end
 
-local category = Settings.RegisterCanvasLayoutCategory(Options, Options.name)
-Settings.RegisterAddOnCategory(category)
+if NeavOptions_AddCategory then
+    NeavOptions_AddCategory(Options, Options.name)
+else
+    local category = Settings.RegisterCanvasLayoutCategory(Options, Options.name)
+    Settings.RegisterAddOnCategory(category)
+end
 
 Options:Hide()
 Options:SetScript("OnShow", function()

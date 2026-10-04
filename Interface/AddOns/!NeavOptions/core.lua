@@ -1,27 +1,32 @@
+local _, ns = ...
+local L = ns.L
+
     -- In-game options for the config.lua tables of the NeavUI addons.
     --
     -- The addons call NeavOptions_Register(name, config) at the end of their config.lua.
     -- Changed values are saved in NeavOptionsDB and written into the config table at
     -- that point, before the rest of the addon reads it, so changes take effect after
-    -- a reload. The option pages are generated from the config tables: booleans are
-    -- check boxes, numbers and strings are input fields and colors are color swatches.
-
-local L = {
-    title = "NeavUI",
-    description = "Options of the NeavUI addons. Changes take effect after a reload.",
-    reload = "Reload UI",
-    defaults = "Defaults",
-    pending = "Changes take effect after a reload.",
-}
-
-if GetLocale() == "deDE" then
-    L.description = "Optionen der NeavUI-Addons. Änderungen werden nach einem Neuladen aktiv."
-    L.reload = "UI neu laden"
-    L.defaults = "Standard"
-    L.pending = "Änderungen werden nach einem Neuladen aktiv."
-end
+    -- a reload. The option pages are generated from the config tables, labels and
+    -- descriptions come from locale.lua.
 
 local registry = {}
+
+local ANCHOR_POINTS = {"TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT"}
+
+local FONTS = {
+    {"Fonts\\FRIZQT__.TTF", "Friz Quadrata"},
+    {"Fonts\\ARIALN.TTF", "Arial Narrow"},
+    {"Fonts\\skurri.ttf", "Skurri"},
+    {"Fonts\\MORPHEUS.TTF", "Morpheus"},
+}
+
+local TEXTURE_KEYS = {
+    border = true,
+    statusbar = true,
+    customTexture = true,
+    borderBuff = true,
+    borderDebuff = true,
+}
 
     -- Paths are stored as strings, numeric keys are prefixed with "#".
 
@@ -75,9 +80,9 @@ end
 
 local function GetColorValues(value)
     if type(value.r) == "number" then
-        return value.r, value.g, value.b, value.a
+        return {value.r, value.g, value.b, value.a}
     end
-    return value[1], value[2], value[3], value[4]
+    return {value[1], value[2], value[3], value[4]}
 end
 
     -- Colors are replaced instead of changed in place, some config tables share color
@@ -125,6 +130,31 @@ local function ApplyOverride(config, path, value)
     end
 end
 
+local function SortKeys(a, b)
+    if type(a) == type(b) then
+        return a < b
+    end
+    return type(a) == "number"
+end
+
+    -- Roles of the values of anchor arrays like {"TOPLEFT", UIParent, "TOPLEFT", 34, -30}.
+
+local function GetPositionRoles(value)
+    local roles, strings, numbers = {}, 0, 0
+
+    for index = 1, #value do
+        if type(value[index]) == "string" then
+            strings = strings + 1
+            roles[index] = strings == 1 and "anchor" or "relativeAnchor"
+        elseif type(value[index]) == "number" then
+            numbers = numbers + 1
+            roles[index] = numbers == 1 and "offsetX" or "offsetY"
+        end
+    end
+
+    return roles
+end
+
 local function CollectEntries(entries, value, path, depth, visited)
     if depth > 8 or visited[value] then
         return
@@ -135,12 +165,12 @@ local function CollectEntries(entries, value, path, depth, visited)
     for key in pairs(value) do
         keys[#keys + 1] = key
     end
-    table.sort(keys, function(a, b)
-        if type(a) == type(b) then
-            return a < b
-        end
-        return type(a) == "number"
-    end)
+    table.sort(keys, SortKeys)
+
+    local parentKey = path[#path]
+    local roles = (parentKey == "position" or parentKey == "location") and GetPositionRoles(value)
+
+    local tables = {}
 
     for _, key in ipairs(keys) do
         local child = value[key]
@@ -149,12 +179,20 @@ local function CollectEntries(entries, value, path, depth, visited)
 
         local valueType = type(child)
         if valueType == "boolean" or valueType == "number" or valueType == "string" then
-            entries[#entries + 1] = {path = childPath, kind = valueType}
+            entries[#entries + 1] = {path = childPath, key = key, kind = valueType, role = roles and roles[key], default = child}
         elseif IsColor(key, child) then
-            entries[#entries + 1] = {path = childPath, kind = "color"}
+            entries[#entries + 1] = {path = childPath, key = key, kind = "color", default = GetColorValues(child)}
         elseif valueType == "table" and not IsFrame(child) then
-            CollectEntries(entries, child, childPath, depth + 1, visited)
+            tables[#tables + 1] = key
         end
+    end
+
+        -- Sub tables after the plain values of a section.
+
+    for _, key in ipairs(tables) do
+        local childPath = CopyTable(path)
+        childPath[#childPath + 1] = key
+        CollectEntries(entries, value[key], childPath, depth + 1, visited)
     end
 end
 
@@ -165,6 +203,11 @@ function NeavOptions_Register(name, config)
 
     NeavOptionsDB = NeavOptionsDB or {}
 
+        -- The entries keep the default values, so they are collected first.
+
+    local entries = {}
+    CollectEntries(entries, config, {}, 1, {})
+
     local saved = NeavOptionsDB[name]
     if saved then
         for pathString, value in pairs(saved) do
@@ -172,44 +215,181 @@ function NeavOptions_Register(name, config)
         end
     end
 
-    local entries = {}
-    CollectEntries(entries, config, {}, 1, {})
-
     registry[#registry + 1] = name
     registry[name] = {config = config, entries = entries}
 end
 
-    -- Option pages
+    -- Labels, descriptions and control types
 
-local ROW_HEIGHT = 26
-local LABEL_WIDTH = 330
+local function Humanize(key)
+    local text = tostring(key):gsub("(%l)(%u)", "%1 %2"):gsub("_", " ")
+    return text:sub(1, 1):upper()..text:sub(2)
+end
+
+local function GetLabel(entry)
+    local key = entry.key
+    local parentKey = entry.path[#entry.path - 1]
+
+    if entry.role then
+        return L[entry.role]
+    elseif type(key) == "number" then
+        if parentKey == "ignoreList" then
+            return L.spellID:format(key)
+        end
+        return tostring(key)
+    elseif parentKey == "showPowerType" then
+        return _G[key] or key
+    end
+
+    return L.labels[key] or Humanize(key)
+end
+
+local function GetSectionTitle(path)
+    local parts = {}
+    for i = 1, #path - 1 do
+        local key = path[i]
+        if key ~= "units" then
+            parts[#parts + 1] = L.sections[key] or Humanize(key)
+        end
+    end
+    return table.concat(parts, " › ")
+end
+
+local function IsTag(key)
+    key = tostring(key)
+    return key:find("Tag") or key:find("Format")
+end
+
+local function GetDescription(entry)
+    local key = entry.key
+
+    if L.descriptions[key] then
+        return L.descriptions[key]
+    elseif entry.kind == "string" and IsTag(key) then
+        return L.tagHelp
+    elseif TEXTURE_KEYS[key] then
+        return L.texture
+    end
+end
+
+local function GetSliderRange(key)
+    key = tostring(key)
+    local lower = key:lower()
+
+    if lower:find("scale") then
+        return 0.5, 2, 0.05
+    elseif lower:find("alpha") then
+        return 0, 1, 0.05
+    elseif key == "auraSize" then
+        return 10, 50, 1
+    elseif key == "numBuffs" or key == "numDebuffs" then
+        return 0, 40, 1
+    elseif key == "width" or key == "sizeWidth" then
+        return 50, 500, 1
+    elseif key == "height" then
+        return 5, 60, 1
+    elseif lower:find("size$") then
+        return 6, 40, 1
+    end
+end
+
+local function IsFontPath(value)
+    return type(value) == "string" and value:lower():find("%.ttf$")
+end
+
+local function GetChoices(entry)
+    local key = entry.key
+    local parentKey = entry.path[#entry.path - 1]
+
+    if entry.role == "anchor" or entry.role == "relativeAnchor" then
+        return ANCHOR_POINTS
+    elseif key == "textPos" then
+        return {"TOP", "CENTER", "BOTTOM"}
+    elseif key == "position" and parentKey == "icon" then
+        return {"LEFT", "RIGHT"}
+    elseif key == "style" then
+        return {"NORMAL", "RARE", "ELITE", "CUSTOM"}
+    end
+end
+
+local function FormatValue(entry, value)
+    if entry.kind == "boolean" then
+        return value and L.on or L.off
+    elseif entry.kind == "color" then
+        return ("%.2f, %.2f, %.2f"):format(value[1], value[2], value[3])
+    elseif entry.kind == "string" and value == "" then
+        return "\"\""
+    end
+    return tostring(value)
+end
+
+    -- Saved values
 
 local function GetCurrentValue(name, entry)
     local saved = NeavOptionsDB[name]
-    local pathString = PathToString(entry.path)
+    local value = saved and saved[PathToString(entry.path)]
 
-    if saved and saved[pathString] ~= nil then
-        return saved[pathString]
+    if value ~= nil then
+        return value
     end
 
-    local parent, key = GetParentAndKey(registry[name].config, entry.path)
-    local value = parent and parent[key]
+    return entry.default
+end
 
-    if entry.kind == "color" and type(value) == "table" then
-        return {GetColorValues(value)}
+local function IsDefault(entry, value)
+    if entry.kind == "color" then
+        for i = 1, 3 do
+            if math.abs(value[i] - entry.default[i]) > 0.001 then
+                return false
+            end
+        end
+        return true
     end
-
-    return value
+    return value == entry.default
 end
 
 local function SaveValue(name, entry, value)
+    local pathString = PathToString(entry.path)
+
+    if IsDefault(entry, value) then
+        if NeavOptionsDB[name] then
+            NeavOptionsDB[name][pathString] = nil
+            if not next(NeavOptionsDB[name]) then
+                NeavOptionsDB[name] = nil
+            end
+        end
+        return
+    end
+
     NeavOptionsDB[name] = NeavOptionsDB[name] or {}
-    NeavOptionsDB[name][PathToString(entry.path)] = value
+    NeavOptionsDB[name][pathString] = value
+end
+
+    -- Controls
+
+local function ShowTooltip(owner, entry)
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    GameTooltip:SetText(GetLabel(entry), 1, 1, 1)
+
+    local description = GetDescription(entry)
+    if description then
+        GameTooltip:AddLine(description, nil, nil, nil, true)
+    end
+
+    GameTooltip:AddLine(L.default:format(FormatValue(entry, entry.default)), 0.6, 0.6, 0.6, true)
+    GameTooltip:Show()
+end
+
+local function AddTooltip(frame, entry)
+    frame:HookScript("OnEnter", function(self)
+        ShowTooltip(self, entry)
+    end)
+    frame:HookScript("OnLeave", GameTooltip_Hide)
 end
 
 local function CreateCheckBox(parent, name, entry)
     local checkBox = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
-    checkBox:SetSize(24, 24)
+    checkBox:SetSize(26, 26)
     checkBox:SetChecked(GetCurrentValue(name, entry))
     checkBox:SetScript("OnClick", function(self)
         SaveValue(name, entry, self:GetChecked() and true or false)
@@ -217,10 +397,88 @@ local function CreateCheckBox(parent, name, entry)
     return checkBox
 end
 
+local function CreateSlider(parent, name, entry, minValue, maxValue, step)
+    local value = GetCurrentValue(name, entry)
+    minValue = math.min(minValue, value)
+    maxValue = math.max(maxValue, value)
+
+    local slider = CreateFrame("Slider", nil, parent, "UISliderTemplateWithLabels")
+    slider:SetWidth(170)
+    slider.Low:Hide()
+    slider.High:Hide()
+    slider.Text:Hide()
+
+    local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    valueText:SetPoint("LEFT", slider, "RIGHT", 10, 0)
+
+    local format = step < 1 and "%.2f" or "%d"
+
+    slider:SetMinMaxValues(minValue, maxValue)
+    slider:SetValueStep(step)
+    slider:SetObeyStepOnDrag(true)
+    slider:SetValue(value)
+    valueText:SetFormattedText(format, value)
+
+    slider:SetScript("OnValueChanged", function(self, newValue, userInput)
+        newValue = math.floor(newValue / step + 0.5) * step
+        valueText:SetFormattedText(format, newValue)
+
+        if userInput then
+            SaveValue(name, entry, newValue)
+        end
+    end)
+
+    return slider
+end
+
+local function CreateDropdown(parent, name, entry, choices)
+    local dropdown = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
+    dropdown:SetWidth(180)
+
+    local function IsSelected(value)
+        return GetCurrentValue(name, entry) == value
+    end
+
+    local function SetSelected(value)
+        SaveValue(name, entry, value)
+    end
+
+    dropdown:SetupMenu(function(_, rootDescription)
+        for _, choice in ipairs(choices) do
+            local value, text = choice, choice
+            if type(choice) == "table" then
+                value, text = choice[1], choice[2]
+            end
+            rootDescription:CreateRadio(text, IsSelected, SetSelected, value)
+        end
+    end)
+
+    return dropdown
+end
+
+local function GetFontChoices(entry)
+    local choices = {}
+    local hasDefault = false
+
+    for _, font in ipairs(FONTS) do
+        choices[#choices + 1] = font
+        if font[1]:lower() == entry.default:lower() then
+            hasDefault = true
+        end
+    end
+
+    if not hasDefault then
+        local file = entry.default:match("([^\\/]+)$") or entry.default
+        table.insert(choices, 1, {entry.default, L.customFont:format(file)})
+    end
+
+    return choices
+end
+
 local function CreateInput(parent, name, entry)
     local input = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
     input:SetAutoFocus(false)
-    input:SetSize(180, 20)
+    input:SetSize(entry.kind == "number" and 80 or 220, 20)
     input:SetText(tostring(GetCurrentValue(name, entry)))
     input:SetCursorPosition(0)
 
@@ -256,12 +514,12 @@ end
 
 local function CreateColorSwatch(parent, name, entry)
     local swatch = CreateFrame("Button", nil, parent)
-    swatch:SetSize(20, 20)
+    swatch:SetSize(22, 22)
 
     local border = swatch:CreateTexture(nil, "BACKGROUND")
     border:SetPoint("TOPLEFT", -1, 1)
     border:SetPoint("BOTTOMRIGHT", 1, -1)
-    border:SetColorTexture(0.6, 0.6, 0.6)
+    border:SetColorTexture(0.8, 0.8, 0.8)
 
     local color = swatch:CreateTexture(nil, "ARTWORK")
     color:SetAllPoints()
@@ -275,11 +533,16 @@ local function CreateColorSwatch(parent, name, entry)
 
     swatch:SetScript("OnClick", function()
         local current = GetCurrentValue(name, entry)
-        local hasAlpha = current[4] ~= nil
+        local hasAlpha = entry.default[4] ~= nil
 
         local function Save(r, g, b, a)
             SaveValue(name, entry, {r, g, b, hasAlpha and a or nil})
             SetSwatchColor(r, g, b)
+        end
+
+        local function OnChanged()
+            local r, g, b = ColorPickerFrame:GetColorRGB()
+            Save(r, g, b, ColorPickerFrame:GetColorAlpha())
         end
 
         ColorPickerFrame:SetupColorPickerAndShow({
@@ -288,17 +551,10 @@ local function CreateColorSwatch(parent, name, entry)
             b = current[3],
             opacity = current[4],
             hasOpacity = hasAlpha,
-            swatchFunc = function()
-                local r, g, b = ColorPickerFrame:GetColorRGB()
-                Save(r, g, b, ColorPickerFrame:GetColorAlpha())
-            end,
-            opacityFunc = function()
-                local r, g, b = ColorPickerFrame:GetColorRGB()
-                Save(r, g, b, ColorPickerFrame:GetColorAlpha())
-            end,
+            swatchFunc = OnChanged,
+            opacityFunc = OnChanged,
             cancelFunc = function()
-                local r, g, b, a = ColorPickerFrame:GetPreviousValues()
-                Save(r, g, b, a)
+                Save(ColorPickerFrame:GetPreviousValues())
             end,
         })
     end)
@@ -306,71 +562,126 @@ local function CreateColorSwatch(parent, name, entry)
     return swatch
 end
 
+local function CreateControl(parent, name, entry)
+    if entry.kind == "boolean" then
+        return CreateCheckBox(parent, name, entry), 28
+    elseif entry.kind == "color" then
+        return CreateColorSwatch(parent, name, entry), 28
+    elseif entry.kind == "number" then
+        local minValue, maxValue, step = GetSliderRange(entry.key)
+        if minValue and not entry.role then
+            return CreateSlider(parent, name, entry, minValue, maxValue, step), 34
+        end
+    elseif entry.kind == "string" then
+        local choices = GetChoices(entry)
+        if not choices and IsFontPath(entry.default) then
+            choices = GetFontChoices(entry)
+        end
+        if choices then
+            return CreateDropdown(parent, name, entry, choices), 34
+        end
+    end
+
+    return CreateInput(parent, name, entry), 28
+end
+
+    -- Pages
+
+local LABEL_X = 24
+local CONTROL_X = 300
+local PAGE_WIDTH = 600
+
+local function BuildPage(page, name)
+    local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText(name)
+
+    local note = page:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    note:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
+    note:SetText(L.pending)
+
+    local reload = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    reload:SetSize(130, 22)
+    reload:SetPoint("TOPRIGHT", -16, -14)
+    reload:SetText(L.reload)
+    reload:SetScript("OnClick", ReloadUI)
+
+    local defaults = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+    defaults:SetSize(130, 22)
+    defaults:SetPoint("RIGHT", reload, "LEFT", -6, 0)
+    defaults:SetText(L.defaults)
+    defaults:SetScript("OnClick", function()
+        NeavOptionsDB[name] = nil
+        ReloadUI()
+    end)
+
+    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", 8, -64)
+    scroll:SetPoint("BOTTOMRIGHT", -30, 8)
+
+    local content = CreateFrame("Frame", nil, scroll)
+    content:SetSize(PAGE_WIDTH, 1)
+    scroll:SetScrollChild(content)
+
+    local y = -4
+    local lastSection
+
+    for _, entry in ipairs(registry[name].entries) do
+        local section = GetSectionTitle(entry.path)
+
+        if section ~= lastSection then
+            lastSection = section
+
+            if section ~= "" then
+                y = y - 10
+
+                local header = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+                header:SetPoint("TOPLEFT", 8, y)
+                header:SetText(section)
+
+                local line = content:CreateTexture(nil, "ARTWORK")
+                line:SetColorTexture(1, 0.82, 0, 0.25)
+                line:SetHeight(1)
+                line:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 0, -3)
+                line:SetWidth(PAGE_WIDTH - 16)
+
+                y = y - 22
+            end
+        end
+
+        local row = CreateFrame("Frame", nil, content)
+        row:SetPoint("TOPLEFT", 0, y)
+        row:SetSize(PAGE_WIDTH, 26)
+        row:EnableMouse(true)
+        AddTooltip(row, entry)
+
+        local label = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        label:SetPoint("LEFT", LABEL_X, 0)
+        label:SetWidth(CONTROL_X - LABEL_X - 10)
+        label:SetJustifyH("LEFT")
+        label:SetWordWrap(false)
+        label:SetText(GetLabel(entry))
+
+        local control, height = CreateControl(row, name, entry)
+        control:SetPoint("LEFT", row, "LEFT", CONTROL_X, 0)
+        AddTooltip(control, entry)
+
+        row:SetHeight(height)
+        y = y - height
+    end
+
+    content:SetHeight(math.max(1, -y + 8))
+end
+
 local function CreatePage(name)
     local page = CreateFrame("Frame")
-    page.name = name
     page:Hide()
 
     page:SetScript("OnShow", function(self)
-        if self.built then
-            return
+        if not self.built then
+            self.built = true
+            BuildPage(self, name)
         end
-        self.built = true
-
-        local title = self:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-        title:SetPoint("TOPLEFT", 16, -16)
-        title:SetText(name)
-
-        local note = self:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-        note:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-        note:SetText(L.pending)
-
-        local reload = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
-        reload:SetSize(120, 22)
-        reload:SetPoint("TOPRIGHT", -16, -14)
-        reload:SetText(L.reload)
-        reload:SetScript("OnClick", ReloadUI)
-
-        local defaults = CreateFrame("Button", nil, self, "UIPanelButtonTemplate")
-        defaults:SetSize(120, 22)
-        defaults:SetPoint("RIGHT", reload, "LEFT", -6, 0)
-        defaults:SetText(L.defaults)
-        defaults:SetScript("OnClick", function()
-            NeavOptionsDB[name] = nil
-            ReloadUI()
-        end)
-
-        local scroll = CreateFrame("ScrollFrame", nil, self, "UIPanelScrollFrameTemplate")
-        scroll:SetPoint("TOPLEFT", 8, -64)
-        scroll:SetPoint("BOTTOMRIGHT", -30, 8)
-
-        local content = CreateFrame("Frame", nil, scroll)
-        content:SetSize(LABEL_WIDTH + 220, 1)
-        scroll:SetScrollChild(content)
-
-        local entries = registry[name].entries
-        for index, entry in ipairs(entries) do
-            local y = -(index - 1) * ROW_HEIGHT
-
-            local label = content:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-            label:SetPoint("TOPLEFT", 8, y - 6)
-            label:SetWidth(LABEL_WIDTH)
-            label:SetJustifyH("LEFT")
-            label:SetWordWrap(false)
-            label:SetText((PathToString(entry.path):gsub("#", "")))
-
-            local control
-            if entry.kind == "boolean" then
-                control = CreateCheckBox(content, name, entry)
-            elseif entry.kind == "color" then
-                control = CreateColorSwatch(content, name, entry)
-            else
-                control = CreateInput(content, name, entry)
-            end
-            control:SetPoint("LEFT", content, "TOPLEFT", LABEL_WIDTH + 16, y - 12)
-        end
-
-        content:SetHeight(math.max(1, #entries * ROW_HEIGHT))
     end)
 
     return page
@@ -388,31 +699,33 @@ local function CreateMainPage()
     description:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -8)
     description:SetPoint("RIGHT", -16, 0)
     description:SetJustifyH("LEFT")
-    description:SetText(L.description)
+    description:SetText(L.description.."\n\n/nui")
 
     return page
 end
 
-local category
+    -- The NeavUI category exists from the start, so other addons can add their own
+    -- pages to it with NeavOptions_AddCategory while they load.
+
+local category = Settings.RegisterCanvasLayoutCategory(CreateMainPage(), L.title)
+Settings.RegisterAddOnCategory(category)
+
+function NeavOptions_AddCategory(frame, name)
+    return Settings.RegisterCanvasLayoutSubcategory(category, frame, name)
+end
 
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
     NeavOptionsDB = NeavOptionsDB or {}
 
-    category = Settings.RegisterCanvasLayoutCategory(CreateMainPage(), L.title)
-
     for _, name in ipairs(registry) do
         Settings.RegisterCanvasLayoutSubcategory(category, CreatePage(name), name)
     end
-
-    Settings.RegisterAddOnCategory(category)
 end)
 
 SlashCmdList["NEAVOPTIONS"] = function()
-    if category then
-        Settings.OpenToCategory(category:GetID())
-    end
+    Settings.OpenToCategory(category:GetID())
 end
 SLASH_NEAVOPTIONS1 = "/neavoptions"
 SLASH_NEAVOPTIONS2 = "/nui"

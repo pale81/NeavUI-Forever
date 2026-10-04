@@ -241,9 +241,23 @@ local function EnableMouseOver(self)
 end
 
     -- Class Icon Portraits (players only)
+    -- The round class icons fit the portrait circle, the classicon atlas is square.
 
-local function UpdateClassPortraits(self, unit)
-    self.showClass = UnitIsPlayer(unit)
+local function UpdateClassPortraits(self, unit, hasStateChanged)
+    if not hasStateChanged then
+        return
+    end
+
+    local isPlayer = UnitIsPlayer(unit)
+    local _, class = UnitClass(unit)
+    local coords = not issecretvalue(isPlayer) and isPlayer and not issecretvalue(class) and class and CLASS_ICON_TCOORDS[class]
+
+    if coords then
+        self:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
+        self:SetTexCoord(unpack(coords))
+    else
+        self:SetTexCoord(0, 1, 0, 1)
+    end
 end
 
     -- Update Portrait Color
@@ -759,7 +773,7 @@ local function CreateUnitLayout(self, unit)
     end
 
     if config.show.classPortraits then
-        self.Portrait.PreUpdate = UpdateClassPortraits
+        self.Portrait.PostUpdate = UpdateClassPortraits
     end
 
         -- Portrait Timer
