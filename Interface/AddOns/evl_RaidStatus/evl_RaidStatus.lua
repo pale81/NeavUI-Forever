@@ -55,7 +55,7 @@ local onUpdate = function(self, elapsed)
     end
 end
 
-local matches, classId, name, sortable
+local matches, classId, unitName, sortable
 local onEnter = function()
     GameTooltip:SetOwner(frame, "ANCHOR_BOTTOMLEFT")
 
@@ -68,14 +68,14 @@ local onEnter = function()
 
             if UnitExists(unit) and isTrue(callback(unit)) then
                 _, classId = UnitClass(unit)
-                name = UnitName(unit)
+                unitName = UnitName(unit)
 
-                if issecretvalue(name) or issecretvalue(classId) then
+                if issecretvalue(unitName) or issecretvalue(classId) then
                     sortable = false
                 end
 
                 local color = (not issecretvalue(classId) and RAID_CLASS_COLORS[classId]) or NORMAL_FONT_COLOR
-                table.insert(matches, {name = name, color = color})
+                table.insert(matches, {name = unitName, color = color})
             end
         end
 

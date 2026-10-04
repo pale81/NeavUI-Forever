@@ -585,7 +585,7 @@ GameTooltip:SetScript("OnEvent", function(self, event, GUID)
         return
     end
 
-    local _, _, _, icon = GetSpecializationInfoByID(specID)
+    local _, _, _, icon = GetSpecializationInfoForSpecID(specID)
     local now = GetTime()
 
     local iconMarkup = CreateTextureMarkup(icon, 64,64, 12,12, 0.10,.90,0.10,0.90, 0,0)

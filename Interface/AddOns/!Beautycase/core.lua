@@ -23,7 +23,6 @@
 --]]
 
 local unpack = unpack
-local select = select
 local type = type
 
 local addonName = ...
