@@ -125,7 +125,7 @@ if cfg.itemqualityBorderColor then
         local item = data and data.id
         if not issecretvalue(item) and item then
             local quality = C_Item.GetItemQualityByID(item)
-            if quality then
+            if quality and quality ~= Enum.ItemQuality.Common then
                 local r, g, b = C_Item.GetItemQualityColor(quality)
                 self:SetBeautyBorderTexture("white")
                 self:SetBeautyBorderColor(r, g, b)
