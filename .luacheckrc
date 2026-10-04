@@ -180,6 +180,14 @@ stds.wow = {
                 "GetClassColor",
             }
         },
+        C_AddOnProfiler = {
+            fields = {
+                "GetAddOnMetric",
+                "GetApplicationMetric",
+                "GetOverallMetric",
+                "IsEnabled",
+            }
+        },
         C_Texture = {
             fields = {
                 "GetAtlasInfo",
@@ -354,6 +362,7 @@ stds.wow = {
         "ChatFrame1Tab",
         "ChatFrame2",
         "ColorPickerFrame",
+        "ADDON_LIST_PERFORMANCE_CURRENT_CPU",
         "AddonCompartmentFrame",
         "MinimapBackdrop",
         "CLASS_ICON_TCOORDS",
