@@ -6,5 +6,6 @@
 ## X-SavedVariables: oUF_NeavDB
 ## X-SlashCmdList: /neav
 ## X-oUF: oUF_Neav
+## OptionalDeps: !NeavOptions
 
 oUF_Neav.xml

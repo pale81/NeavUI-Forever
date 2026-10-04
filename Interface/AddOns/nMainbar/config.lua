@@ -43,3 +43,9 @@ nMainbar.Config = {
         scale = 0.80,
     },
 }
+
+    -- In-game options (!NeavOptions) override the values above.
+
+if NeavOptions_Register then
+    NeavOptions_Register("nMainbar", nMainbar.Config)
+end

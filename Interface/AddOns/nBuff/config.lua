@@ -19,3 +19,9 @@ nBuff.Config = {
     durationFont = STANDARD_TEXT_FONT,
     countFont = STANDARD_TEXT_FONT,
 }
+
+    -- In-game options (!NeavOptions) override the values above.
+
+if NeavOptions_Register then
+    NeavOptions_Register("nBuff", nBuff.Config)
+end
