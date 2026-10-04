@@ -10,6 +10,7 @@ local L = ns.L
     -- descriptions come from locale.lua.
 
 local registry = {}
+local extraButtons = {}
 
 local ANCHOR_POINTS = {"TOPLEFT", "TOP", "TOPRIGHT", "LEFT", "CENTER", "RIGHT", "BOTTOMLEFT", "BOTTOM", "BOTTOMRIGHT"}
 
@@ -18,6 +19,20 @@ local FONTS = {
     {"Fonts\\ARIALN.TTF", "Arial Narrow"},
     {"Fonts\\skurri.ttf", "Skurri"},
     {"Fonts\\MORPHEUS.TTF", "Morpheus"},
+}
+
+local TAG_PRESETS = {
+    "$cur/$max",
+    "$cur",
+    "$max",
+    "$perc",
+    "$smartperc",
+    "$colorperc",
+    "$cur - $perc",
+    "$cur - $colorperc",
+    "$cur/$max - $perc",
+    "$deficit",
+    "",
 }
 
 local TEXTURE_KEYS = {
@@ -223,6 +238,18 @@ function NeavOptions_Register(name, config)
     registry[name] = {config = config, entries = entries}
 end
 
+    -- Addons add buttons to their page, e.g. to unlock frames. Text and tooltip
+    -- can be keys of the localized texts.
+
+function NeavOptions_AddButton(name, text, func, tooltip)
+    extraButtons[name] = extraButtons[name] or {}
+    table.insert(extraButtons[name], {
+        text = L[text] or text,
+        func = func,
+        tooltip = tooltip and (L[tooltip] or tooltip),
+    })
+end
+
     -- Labels, descriptions and control types
 
 local function Humanize(key)
@@ -310,19 +337,61 @@ local function IsFontPath(value)
     return type(value) == "string" and value:lower():find("%.ttf$")
 end
 
-local function GetChoices(entry)
+    -- Tags ("$cur/$max") are shown with readable names ("Current/Maximum").
+
+local function GetTagText(value)
+    if value == "" then
+        return L.noText
+    end
+
+    return (value:gsub("%$(%a+)", function(tag)
+        return L.tags[tag] or "$"..tag
+    end))
+end
+
+local function GetChoiceText(entry, value)
+    if IsTag(entry.key) then
+        return GetTagText(value)
+    end
+
+    return L.choices[value] or tostring(value)
+end
+
+local function GetChoices(entry, current)
     local key = entry.key
     local parentKey = entry.path[#entry.path - 1]
+    local values
 
     if entry.role == "anchor" or entry.role == "relativeAnchor" then
-        return ANCHOR_POINTS
+        values = CopyTable(ANCHOR_POINTS)
     elseif key == "textPos" then
-        return {"TOP", "CENTER", "BOTTOM"}
+        values = {"TOP", "CENTER", "BOTTOM"}
     elseif key == "position" and parentKey == "icon" then
-        return {"LEFT", "RIGHT"}
+        values = {"LEFT", "RIGHT"}
     elseif key == "style" then
-        return {"NORMAL", "RARE", "ELITE", "CUSTOM"}
+        values = {"NORMAL", "RARE", "ELITE", "CUSTOM"}
+    elseif key == "focusToggleKey" then
+        values = {"type1", "type2", "type3", "type4", "type5"}
+    elseif IsTag(key) then
+        values = CopyTable(TAG_PRESETS)
+    else
+        return
     end
+
+        -- Values set in config.lua that are not in the list stay selectable.
+
+    for _, value in ipairs({entry.default, current}) do
+        if not tContains(values, value) then
+            values[#values + 1] = value
+        end
+    end
+
+    local choices = {}
+    for i, value in ipairs(values) do
+        choices[i] = {value, GetChoiceText(entry, value)}
+    end
+
+    return choices
 end
 
 local function FormatValue(entry, value)
@@ -330,6 +399,8 @@ local function FormatValue(entry, value)
         return value and L.on or L.off
     elseif entry.kind == "color" then
         return ("%.2f, %.2f, %.2f"):format(value[1], value[2], value[3])
+    elseif entry.kind == "string" and (IsTag(entry.key) or L.choices[value]) then
+        return GetChoiceText(entry, value)
     elseif entry.kind == "string" and value == "" then
         return "\"\""
     end
@@ -443,7 +514,7 @@ end
 
 local function CreateDropdown(parent, name, entry, choices)
     local dropdown = CreateFrame("DropdownButton", nil, parent, "WowStyle1DropdownTemplate")
-    dropdown:SetWidth(180)
+    dropdown:SetWidth(220)
 
     local function IsSelected(value)
         return GetCurrentValue(name, entry) == value
@@ -583,7 +654,7 @@ local function CreateControl(parent, name, entry)
             return CreateSlider(parent, name, entry, minValue, maxValue, step), 34
         end
     elseif entry.kind == "string" then
-        local choices = GetChoices(entry)
+        local choices = GetChoices(entry, GetCurrentValue(name, entry))
         if not choices and IsFontPath(entry.default) then
             choices = GetFontChoices(entry)
         end
@@ -601,10 +672,21 @@ local LABEL_X = 24
 local CONTROL_X = 300
 local PAGE_WIDTH = 600
 
+local function GetTitle(name)
+    local title = C_AddOns.GetAddOnMetadata(name, "Title")
+    if not title then
+        return name
+    end
+
+        -- "|cffCC3333 n|rMinimap" -> "|cffCC3333n|rMinimap"
+
+    return (title:gsub("(|c%x%x%x%x%x%x%x%x)%s+", "%1"))
+end
+
 local function BuildPage(page, name)
     local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
-    title:SetText(name)
+    title:SetText(GetTitle(name))
 
     local note = page:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     note:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
@@ -625,8 +707,31 @@ local function BuildPage(page, name)
         ReloadUI()
     end)
 
+        -- Extra buttons of the addon (NeavOptions_AddButton) below "Reload UI".
+
+    local anchor = reload
+    for _, info in ipairs(extraButtons[name] or {}) do
+        local button = CreateFrame("Button", nil, page, "UIPanelButtonTemplate")
+        button:SetSize(130, 22)
+        button:SetPoint("TOPRIGHT", anchor, "BOTTOMRIGHT", 0, -4)
+        button:SetText(info.text)
+        button:SetScript("OnClick", info.func)
+
+        if info.tooltip then
+            button:SetScript("OnEnter", function(self)
+                GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+                GameTooltip:SetText(info.text, 1, 1, 1)
+                GameTooltip:AddLine(info.tooltip, nil, nil, nil, true)
+                GameTooltip:Show()
+            end)
+            button:SetScript("OnLeave", GameTooltip_Hide)
+        end
+
+        anchor = button
+    end
+
     local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", 8, -64)
+    scroll:SetPoint("TOPLEFT", 8, -64 - math.max(0, #(extraButtons[name] or {}) - 1) * 26)
     scroll:SetPoint("BOTTOMRIGHT", -30, 8)
 
     local content = CreateFrame("Frame", nil, scroll)
@@ -730,7 +835,7 @@ loader:SetScript("OnEvent", function()
     NeavOptionsDB = NeavOptionsDB or {}
 
     for _, name in ipairs(registry) do
-        Settings.RegisterCanvasLayoutSubcategory(category, CreatePage(name), name)
+        Settings.RegisterCanvasLayoutSubcategory(category, CreatePage(name), GetTitle(name))
     end
 end)
 

@@ -5,7 +5,7 @@ local pairs = pairs
 
 local Options = CreateFrame("Frame", "nCoreOptions")
 Options.controlTable = {}
-Options.name = C_AddOns.GetAddOnMetadata(addon, "Title")
+Options.name = C_AddOns.GetAddOnMetadata(addon, "Title"):gsub("(|c%x%x%x%x%x%x%x%x)%s+", "%1")
 
     -- The settings panel calls OnCommit, OnDefault and OnRefresh on canvas frames.
     -- The controls are created when the panel is shown for the first time.

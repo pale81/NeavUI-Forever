@@ -902,9 +902,8 @@ do
 		return createOrUpdateMadnessOfGodIhateGUIs()
 	end)
 
-	if(NeavOptions_AddCategory) then
-		_CATEGORY = NeavOptions_AddCategory(opt, GetLocale() == "deDE" and "Frames verschieben" or "Move Frames")
-	else
+	-- NeavUI: the oUF_Neav options page gets buttons instead of an own category.
+	if(not NeavOptions_AddButton) then
 		_CATEGORY = Settings.RegisterCanvasLayoutCategory(opt, _TITLE)
 		Settings.RegisterAddOnCategory(_CATEGORY)
 	end
@@ -924,7 +923,7 @@ SlashCmdList[slashGlobal] = function(inp)
 		return print"Frames cannot be moved while in combat. Bailing out."
 	end
 
-	if(inp:match("%S+")) then
+	if(inp:match("%S+") and _CATEGORY) then
 		Settings.OpenToCategory(_CATEGORY:GetID())
 	else
 		if(not _LOCK) then
@@ -946,4 +945,40 @@ SlashCmdList[slashGlobal] = function(inp)
 		end
 	end
 end
+if(NeavOptions_AddButton) then
+	StaticPopupDialogs["NEAVUI_RESET_FRAMES"] = {
+		text = RESET_TO_DEFAULT .. "?",
+		button1 = YES,
+		button2 = NO,
+		OnAccept = function()
+			for style, positions in next, _DB do
+				if(style ~= "__INITIAL") then
+					for identifier in next, positions do
+						restoreDefaultPosition(style, identifier)
+					end
+					_DB[style] = nil
+				end
+			end
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+	}
+
+	NeavOptions_AddButton(_NAME, "moveFrames", function()
+		if(InCombatLockdown()) then
+			return SlashCmdList[slashGlobal]("")
+		end
+
+		SettingsPanel:Close(true)
+		SlashCmdList[slashGlobal]("")
+	end, "moveFramesTooltip")
+
+	NeavOptions_AddButton(_NAME, "resetFrames", function()
+		if(not InCombatLockdown()) then
+			StaticPopup_Show("NEAVUI_RESET_FRAMES")
+		end
+	end, "resetFramesTooltip")
+end
+
 -- It's not in your best interest to disconnect me. Someone could get hurt.

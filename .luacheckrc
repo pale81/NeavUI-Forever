@@ -50,6 +50,7 @@ globals = {
     "NeavOptionsDB",
     "NeavOptions_Register",
     "NeavOptions_AddCategory",
+    "NeavOptions_AddButton",
     "SLASH_NEAVOPTIONS1",
     "SLASH_NEAVOPTIONS2",
 
@@ -362,6 +363,7 @@ stds.wow = {
         "ChatFrame1Tab",
         "ChatFrame2",
         "ColorPickerFrame",
+        "tContains",
         "ADDON_LIST_PERFORMANCE_CURRENT_CPU",
         "AddonCompartmentFrame",
         "MinimapBackdrop",
