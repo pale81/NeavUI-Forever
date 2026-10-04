@@ -691,7 +691,7 @@ local function CreateRaidLayout(self, unit)
     self.ThreatIndicator:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", 4, -4)
     self.ThreatIndicator:SetBackdrop({edgeFile = "Interface\\AddOns\\oUF_NeavRaid\\media\\textureGlow", edgeSize = 3})
     self.ThreatIndicator:SetBackdropBorderColor(0, 0, 0, 0)
-    self.ThreatIndicator:SetFrameLevel(self:GetFrameLevel() - 1)
+    self.ThreatIndicator:SetFrameLevel(math.max(0, self:GetFrameLevel() - 1))
 
     self:RegisterEvent("UNIT_THREAT_LIST_UPDATE", UpdateThreat)
     self:RegisterEvent("UNIT_THREAT_SITUATION_UPDATE", UpdateThreat)
