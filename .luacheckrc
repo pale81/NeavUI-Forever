@@ -46,6 +46,12 @@ globals = {
     "_detalhes",
     "BigWigsOptions",
 
+    -- !NeavOptions.
+    "NeavOptionsDB",
+    "NeavOptions_Register",
+    "SLASH_NEAVOPTIONS1",
+    "SLASH_NEAVOPTIONS2",
+
     -- !Colorz.
     "Colorz_GetUnitColor",
 
@@ -341,6 +347,7 @@ stds.wow = {
         "ChatFrame1EditBox",
         "ChatFrame1Tab",
         "ChatFrame2",
+        "ColorPickerFrame",
         "ChatFrameChannelButton",
         "ChatFrameMenuButton",
         "ChatFrameToggleVoiceDeafenButton",
@@ -356,6 +363,7 @@ stds.wow = {
         "ConsoleExec",
         "Constants",
         "CreateAtlasMarkup",
+        "CopyTable",
         "CreateColor",
         "CreateFrame",
         "CreateTextureMarkup",

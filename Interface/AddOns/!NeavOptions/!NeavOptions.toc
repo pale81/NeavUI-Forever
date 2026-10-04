@@ -1,0 +1,6 @@
+## Interface: 16001
+## Title: |cffCC3333N|r|cffE53300e|r|cffFF4D00a|r|cffFF6633v|rUI Options
+## Notes: In-game options for the config.lua values of the NeavUI addons.
+## SavedVariables: NeavOptionsDB
+
+core.lua

@@ -1,5 +1,6 @@
 ## Interface: 16001
 ## Title: |cffCC3333 n|rBuff
+## OptionalDeps: !NeavOptions
 
 config.lua
 core.lua

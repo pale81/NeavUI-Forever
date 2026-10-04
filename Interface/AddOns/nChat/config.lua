@@ -24,3 +24,9 @@ nChat.Config = {
         selectedColor = {0, 0.75, 1},
     },
 }
+
+    -- In-game options (!NeavOptions) override the values above.
+
+if NeavOptions_Register then
+    NeavOptions_Register("nChat", nChat.Config)
+end

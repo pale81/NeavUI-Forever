@@ -293,3 +293,9 @@ ns.Config = {
         },
     },
 }
+
+    -- In-game options (!NeavOptions) override the values above.
+
+if NeavOptions_Register then
+    NeavOptions_Register("oUF_Neav", ns.Config)
+end

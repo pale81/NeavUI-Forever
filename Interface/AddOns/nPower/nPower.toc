@@ -1,4 +1,5 @@
 ## Interface: 16001
 ## Title: |cffCC3333 n|rPower
+## OptionalDeps: !NeavOptions
 
 nPower.xml
