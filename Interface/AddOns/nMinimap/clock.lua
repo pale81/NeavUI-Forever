@@ -7,9 +7,10 @@ local classColor = RAID_CLASS_COLORS[select(2, UnitClass("player"))]
 TimeManagerClockTicker:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
 TimeManagerClockTicker:SetShadowOffset(0, 0)
 TimeManagerClockTicker:SetTextColor(classColor.r, classColor.g, classColor.b)
+TimeManagerClockTicker:ClearAllPoints()
 TimeManagerClockTicker:SetPoint("TOPRIGHT", TimeManagerClockButton, 0, 0)
 
-TimeManagerClockButton:GetRegions():Hide()
+TimeManagerClockButton:SetParent(Minimap)
 TimeManagerClockButton:ClearAllPoints()
 TimeManagerClockButton:SetWidth(40)
 TimeManagerClockButton:SetHeight(18)

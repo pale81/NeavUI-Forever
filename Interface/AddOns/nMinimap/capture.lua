@@ -1,22 +1,17 @@
-
 local _, nMinimap = ...
 local cfg = nMinimap.Config
 
-hooksecurefunc("UIParent_ManageFramePositions", function()
-    if NUM_EXTENDED_UI_FRAMES then
-        for i = 1, NUM_EXTENDED_UI_FRAMES do
-            local bar = _G["WorldStateCaptureBar"..i]
+    -- Capture bars and other world state widgets are shown in the "below minimap"
+    -- widget container, which is placed by the right managed frame layout.
 
-            if bar and bar:IsVisible() then
-                bar:ClearAllPoints()
-                bar:SetScale(0.9333334)
+local container = UIWidgetBelowMinimapContainerFrame
 
-                if i == 1 then
-                    bar:SetPoint("TOP", Minimap, "BOTTOM", 0, cfg.tab.showBelowMinimap and -30 or -10)
-                else
-                    bar:SetPoint("TOP", _G["WorldStateCaptureBar"..(i-1)], "BOTTOM", 0, -15)
-                end
-            end
-        end
+local function AnchorBelowMinimap(self, _, relativeTo)
+    if relativeTo ~= Minimap then
+        self:ClearAllPoints()
+        self:SetPoint("TOP", Minimap, "BOTTOM", 0, cfg.tab.showBelowMinimap and -30 or -10)
     end
-end)
+end
+
+hooksecurefunc(container, "SetPoint", AnchorBelowMinimap)
+AnchorBelowMinimap(container)

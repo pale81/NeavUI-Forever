@@ -2,17 +2,14 @@
 local _, nMinimap = ...
 local cfg = nMinimap.Config
 
-local isGuildGroup = nil
+local instanceDifficulty = MinimapCluster.InstanceDifficulty
 
 local function HideDifficultyFrame()
-    GuildInstanceDifficulty:EnableMouse(false)
-    GuildInstanceDifficulty:SetAlpha(0)
+    instanceDifficulty:SetAlpha(0)
 
-    MiniMapInstanceDifficulty:EnableMouse(false)
-    MiniMapInstanceDifficulty:SetAlpha(0)
-
-    MiniMapChallengeMode:EnableMouse(false)
-    MiniMapChallengeMode:SetAlpha(0)
+    for _, frame in ipairs(instanceDifficulty.ContentModes) do
+        frame:EnableMouse(false)
+    end
 end
 
 local function GetDifficultyText()
@@ -27,7 +24,7 @@ local function GetDifficultyText()
     local lookingForRaidStyle = "|cffffffffLFR|r"
     local timewalkerStyle = "|cffffffffTW|r"
 
-    if isGuildGroup or GuildInstanceDifficulty:IsShown() then
+    if instanceDifficulty:IsGuildGroup() then
         guildStyle = "|cffffff00G|r"
     else
         guildStyle = ""
@@ -68,13 +65,15 @@ function nMinimapDifficulty_OnLoad(self)
     end
 end
 
-hooksecurefunc("MiniMapInstanceDifficulty_Update", function(self, event, ...)
-    if event == "GUILD_PARTY_STATE_UPDATED" then
-        local isGuild = ...
-        if isGuild ~= isGuildGroup then
-            isGuildGroup = isGuild
-        end
-    end
+local function UpdateDifficulty()
     HideDifficultyFrame()
-    nMinimapDifficulty.Overlay.Text:SetText(GetDifficultyText())
-end)
+
+        -- This file is loaded before the nMinimapDifficulty frame is created.
+    if nMinimapDifficulty then
+        nMinimapDifficulty.Overlay.Text:SetText(GetDifficultyText())
+    end
+end
+
+hooksecurefunc(instanceDifficulty, "Update", UpdateDifficulty)
+hooksecurefunc(instanceDifficulty, "SetIsGuildGroup", UpdateDifficulty)
+HideDifficultyFrame()
