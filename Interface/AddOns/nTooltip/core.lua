@@ -114,12 +114,15 @@ hooksecurefunc("SharedTooltip_SetBackdropStyle", ApplyTooltipStyle)
     -- Itemquaility border, we use our beautycase functions
 
 if cfg.itemqualityBorderColor then
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self)
+        -- The tooltip data holds the item ID; GetItem only exists on tooltips with
+        -- GameTooltipDataMixin (not on the shopping tooltips).
+
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
         if not self.beautyBorder or self:IsForbidden() then
             return
         end
 
-        local _, item = self:GetItem()
+        local item = data and data.id
         if not issecretvalue(item) and item then
             local quality = C_Item.GetItemQualityByID(item)
             if quality then
@@ -561,7 +564,7 @@ GameTooltip:SetScript("OnEvent", function(self, event, GUID)
 
     local _, unit = self:GetUnit()
 
-    if not unit then
+    if issecretvalue(unit) or not unit then
         return
     end
 
