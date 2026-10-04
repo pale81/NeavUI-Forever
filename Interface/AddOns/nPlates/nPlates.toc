@@ -5,6 +5,7 @@
 ## Version: 3.0.24
 ## IconTexture: Interface\AddOns\nPlates\Media\Addon_Icon.png
 ## SavedVariablesPerCharacter: nPlatesDB
+## OptionalDeps: !NeavOptions
 ## AllowLoad: Game
 ## AllowLoadGameType: mainline
 

@@ -829,6 +829,10 @@ function NeavOptions_AddCategory(frame, name)
     return Settings.RegisterCanvasLayoutSubcategory(category, frame, name)
 end
 
+function NeavOptions_AddVerticalCategory(name)
+    return Settings.RegisterVerticalLayoutSubcategory(category, name)
+end
+
 local loader = CreateFrame("Frame")
 loader:RegisterEvent("PLAYER_LOGIN")
 loader:SetScript("OnEvent", function()
