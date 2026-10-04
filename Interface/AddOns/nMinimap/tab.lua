@@ -7,6 +7,17 @@ local format = string.format
 local sort = table.sort
 local tinsert = tinsert
 
+    -- Region sizes can be secret (e.g. after secret text was set), they can't be
+    -- used in arithmetic then.
+
+local function GetSafeWidth(region, fallback)
+    local width = region:GetWidth()
+    if issecretvalue(width) then
+        return fallback or 0
+    end
+    return width
+end
+
 local playerName, _ = UnitName("player")
 local playerRealm = GetRealmName()
 
@@ -154,7 +165,7 @@ function nMinimapTab_OnLoad(self)
     self.lastUpdate = 0
 
     self:RegisterEvent("PLAYER_LOGIN")
-    self:SetWidth(Minimap:GetWidth()-6)
+    self:SetWidth(GetSafeWidth(Minimap, 146)-6)
     self:CreateBeautyBorder(11)
     nMinimapTab_HideTab()
 
@@ -212,7 +223,7 @@ function nMinimap_UpdateGuildButton(entry)
     entry.id = GuildListEntries[index].id
 
     local height = scrollFrame.entryHeight
-    local minWidth = scrollFrame:GetWidth()
+    local minWidth = GetSafeWidth(scrollFrame, 300)
     local zonec, classc, levelc
 
     local name, _, _, level, _, zone, _, _, connected, status, class, _ = GetGuildRosterInfo(entry.id)
@@ -240,7 +251,7 @@ function nMinimap_UpdateGuildButton(entry)
         entry.LeftText:SetFormattedText("%s %s %s", level, name, statusText[status])
         entry.RightText:SetText(zone)
 
-        minWidth = math.max(minWidth, entry.LeftText:GetWidth()+entry.RightText:GetWidth()+100)
+        minWidth = math.max(minWidth, GetSafeWidth(entry.LeftText)+GetSafeWidth(entry.RightText)+100)
         entry:Show()
     end
 
@@ -375,7 +386,7 @@ function nMinimap_UpdateFriendButton(entry)
     entry.buttonType = FriendListEntries[index].buttonType
     entry.id = FriendListEntries[index].id
     local height = scrollFrame.entryHeight
-    local minWidth = scrollFrame:GetWidth()
+    local minWidth = GetSafeWidth(scrollFrame, 300)
     local zonec, classc, levelc
 
     if entry.buttonType == FRIENDS_BUTTON_TYPE_BNET then
@@ -427,7 +438,7 @@ function nMinimap_UpdateFriendButton(entry)
                  entry.RightText:SetText(clientIcon)
             end
 
-            minWidth = math.max(minWidth, entry.LeftText:GetWidth()+entry.RightText:GetWidth()+100)
+            minWidth = math.max(minWidth, GetSafeWidth(entry.LeftText)+GetSafeWidth(entry.RightText)+100)
             entry:Show()
         end
     elseif entry.buttonType == FRIENDS_BUTTON_TYPE_WOW then
@@ -475,7 +486,7 @@ function nMinimap_UpdateFriendButton(entry)
                 entry.LeftText:SetFormattedText("%s %s %s", info.level, info.name, chatFlag)
                 entry.RightText:SetFormattedText(info.area)
 
-                minWidth = math.max(minWidth, entry.LeftText:GetWidth()+entry.RightText:GetWidth()+100)
+                minWidth = math.max(minWidth, GetSafeWidth(entry.LeftText)+GetSafeWidth(entry.RightText)+100)
                 entry:Show()
             end
         end
@@ -645,7 +656,7 @@ function nMinimap_UpdateMemoryButton(entry)
     local index = entry.index
     entry.id = MemoryListEntries[index].id
     local height = scrollFrame.entryHeight
-    local minWidth = scrollFrame:GetWidth()
+    local minWidth = GetSafeWidth(scrollFrame, 300)
 
     local name = AddonTable[entry.id].name
     local value = AddonTable[entry.id].value
@@ -660,7 +671,7 @@ function nMinimap_UpdateMemoryButton(entry)
         end
     end
 
-    minWidth = math.max(minWidth, entry.LeftText:GetWidth()+entry.RightText:GetWidth()+75)
+    minWidth = math.max(minWidth, GetSafeWidth(entry.LeftText)+GetSafeWidth(entry.RightText)+75)
 
     scrollFrame.scrollChild:SetWidth(minWidth)
     scrollFrame:SetWidth(minWidth)
