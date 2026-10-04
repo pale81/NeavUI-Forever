@@ -28,7 +28,7 @@ nMainbar.Config = {
     },
 
     color = {   -- Red, Green, Blue, Alpha
-        Normal = CreateColor(1.0, 1.0, 1.0, 1.0),
+        Normal = CreateColor(1.0, 0.78, 0.52, 1.0),           -- Button border, bronze like the gryphons (white = original gray)
         IsEquipped = CreateColor(0.0, 1.0, 0.0, 1.0),
         OutOfRange = CreateColor(0.8, 0.1, 0.1, 1.0),
         OutOfMana = CreateColor(0.3, 0.3, 1.0, 1.0),

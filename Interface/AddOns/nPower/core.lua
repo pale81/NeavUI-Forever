@@ -83,14 +83,24 @@ local function UpdateArrow(self)
     end
 end
 
+    -- Alpha 0 at 0% power, 1 otherwise. A secret power value can't be compared,
+    -- so an abbreviated secret zero is hidden through the text alpha.
+
+local zeroAlphaCurve = C_CurveUtil.CreateCurve()
+zeroAlphaCurve:SetType(Enum.LuaCurveType.Step)
+zeroAlphaCurve:AddPoint(0, 0)
+zeroAlphaCurve:AddPoint(0.000001, 1)
+
 local function UpdateBarValue(self)
     local min = UnitPower("player")
     self.Power:SetMinMaxValues(0, UnitPowerMax("player"))
     self.Power:SetValue(min)
+    self.Power.Value:SetAlpha(1)
 
     if (IsSecret(min)) then
         if (config.valueAbbrev) then
-            self.Power.Value:SetText(C_StringUtil.TruncateWhenZero(AbbreviateNumbers(min)))
+            self.Power.Value:SetText(AbbreviateNumbers(min))
+            self.Power.Value:SetAlpha(UnitPowerPercent("player", nil, false, zeroAlphaCurve))
         else
             self.Power.Value:SetText(C_StringUtil.TruncateWhenZero(min))
         end

@@ -170,6 +170,11 @@ stds.wow = {
                 "GetClassColor",
             }
         },
+        C_CurveUtil = {
+            fields = {
+                "CreateCurve",
+            }
+        },
         C_DateAndTime = {
             fields = {
                 "GetCurrentCalendarTime",
