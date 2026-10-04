@@ -8,6 +8,9 @@ nMinimap.Config = {
     -- Hides the minimap buttons of other addons and lists them in the right click menu.
     collectButtons = true,
 
+    -- Player coordinates at the top of the minimap instead of the ones of the default UI.
+    coordinates = true,
+
     tab = {
         show = true,
         showAlways = true,

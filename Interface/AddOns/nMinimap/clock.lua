@@ -1,3 +1,6 @@
+local _, nMinimap = ...
+local cfg = nMinimap.Config
+
 local unpack = unpack
 local sort = table.sort
 local sort_func = function( a,b ) return a.name < b.name end
@@ -18,49 +21,66 @@ TimeManagerClockButton:SetPoint("BOTTOM", Minimap, 0, 2)
 
 TimeManagerAlarmFiredTexture:SetTexture(nil)
 
-    -- Player coordinates of the default UI below the top edge of the minimap,
-    -- in the font of the clock.
+    -- Player coordinates below the top edge of the minimap, in the font of the clock.
+    -- The coordinates of the default UI are hidden.
 
-    -- The position is set again whenever the default UI moves the frame.
-
-local playerCoords = MinimapCluster.PlayerCoords
-if playerCoords then
-    local isAnchoring
-
-    local function AnchorPlayerCoords()
-        if isAnchoring then
-            return
-        end
-
-        isAnchoring = true
-        playerCoords:SetParent(Minimap)
-        playerCoords:ClearAllPoints()
-        playerCoords:SetPoint("TOP", Minimap, 0, -4)
-        playerCoords:SetSize(120, 16)
-        isAnchoring = false
+local function FindBlizzardCoords(frame, depth)
+    if frame.CoordText then
+        return frame
     end
 
-    AnchorPlayerCoords()
-    hooksecurefunc(playerCoords, "SetPoint", AnchorPlayerCoords)
-    hooksecurefunc(playerCoords, "SetParent", AnchorPlayerCoords)
+    if depth < 3 then
+        for _, child in ipairs({frame:GetChildren()}) do
+            local found = FindBlizzardCoords(child, depth + 1)
+            if found then
+                return found
+            end
+        end
+    end
+end
 
-    local coordsLoader = CreateFrame("Frame")
-    coordsLoader:RegisterEvent("PLAYER_ENTERING_WORLD")
-    coordsLoader:SetScript("OnEvent", AnchorPlayerCoords)
+if cfg.coordinates then
+    local coords = CreateFrame("Frame", nil, Minimap)
+    coords:SetSize(120, 16)
+    coords:SetPoint("TOP", Minimap, 0, -4)
+    coords:SetFrameLevel(Minimap:GetFrameLevel() + 5)
 
-    local coordText = playerCoords.CoordText
+    local coordText = coords:CreateFontString(nil, "OVERLAY")
+    coordText:SetAllPoints(coords)
     coordText:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
     coordText:SetShadowOffset(0, 0)
     coordText:SetTextColor(classColor.r, classColor.g, classColor.b)
+
+    local elapsedTime = 0
+    coords:SetScript("OnUpdate", function(_, elapsed)
+        elapsedTime = elapsedTime + elapsed
+        if elapsedTime < 0.2 then
+            return
+        end
+        elapsedTime = 0
+
+        local mapID = C_Map.GetBestMapForUnit("player")
+        local position = mapID and C_Map.GetPlayerMapPosition(mapID, "player")
+        local x, y
+
+        if position then
+            x, y = position:GetXY()
+        end
+
+        if x and not issecretvalue(x) and not issecretvalue(y) and (x ~= 0 or y ~= 0) then
+            coordText:SetFormattedText("%.1f, %.1f", x * 100, y * 100)
+        else
+            coordText:SetText("")
+        end
+    end)
+
+    local blizzardCoords = FindBlizzardCoords(MinimapCluster, 1)
+    if blizzardCoords then
+        blizzardCoords:SetAlpha(0)
+    elseif C_CVar.GetCVar("minimapShowPlayerCoords") ~= nil then
+        C_CVar.SetCVar("minimapShowPlayerCoords", "0")
+    end
 end
-
-hooksecurefunc(TimeManagerAlarmFiredTexture, "Show", function()
-    TimeManagerClockTicker:SetTextColor(1, 0, 1)
-end)
-
-hooksecurefunc(TimeManagerAlarmFiredTexture, "Hide", function()
-    TimeManagerClockTicker:SetTextColor(classColor.r, classColor.g, classColor.b)
-end)
 
     -- Add lockouts to time tooltip.
 

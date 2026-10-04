@@ -174,6 +174,7 @@ stds.wow = {
         C_CVar = {
             fields = {
                 "GetCVar",
+                "SetCVar",
             }
         },
         C_ClassColor = {
@@ -241,6 +242,7 @@ stds.wow = {
         C_Map = {
             fields = {
                 "GetBestMapForUnit",
+                "GetPlayerMapPosition",
                 "GetWorldPosFromMapPos",
             }
         },
