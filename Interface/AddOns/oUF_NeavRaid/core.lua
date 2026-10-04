@@ -284,8 +284,11 @@ local function CreateDebuff(self)
 
         -- "RAID" limits harmful auras to the ones the player can dispel, like the
         -- "Display Only Dispellable Debuffs" option of the default raid frames.
+        -- "RAID_IN_COMBAT" leaves out debuffs that are not meant for raid frames
+        -- (e.g. long lasting debuffs without effect in combat).
 
-    local slotKey = debuff:AddSlot(nRaidDB.dispellableDebuffsOnly and "HARMFUL|RAID" or "HARMFUL", {
+    local filter = nRaidDB.dispellableDebuffsOnly and "HARMFUL|RAID" or "HARMFUL|RAID_IN_COMBAT"
+    local slotKey = debuff:AddSlot(filter, {
         sortMethod = AuraContainerSortMethod.UnitFrameDebuff,
     })
 

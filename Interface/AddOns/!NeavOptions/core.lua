@@ -208,6 +208,10 @@ function NeavOptions_Register(name, config)
     local entries = {}
     CollectEntries(entries, config, {}, 1, {})
 
+    for _, entry in ipairs(entries) do
+        entry.addon = name
+    end
+
     local saved = NeavOptionsDB[name]
     if saved then
         for pathString, value in pairs(saved) do
@@ -226,6 +230,13 @@ local function Humanize(key)
     return text:sub(1, 1):upper()..text:sub(2)
 end
 
+    -- Texts for a key of one addon ("nMinimap.tab") take precedence over the
+    -- texts for the key in all addons ("tab").
+
+local function Lookup(texts, addon, key)
+    return texts[addon.."."..tostring(key)] or texts[key]
+end
+
 local function GetLabel(entry)
     local key = entry.key
     local parentKey = entry.path[#entry.path - 1]
@@ -241,15 +252,15 @@ local function GetLabel(entry)
         return _G[key] or key
     end
 
-    return L.labels[key] or Humanize(key)
+    return Lookup(L.labels, entry.addon, key) or Humanize(key)
 end
 
-local function GetSectionTitle(path)
+local function GetSectionTitle(path, addon)
     local parts = {}
     for i = 1, #path - 1 do
         local key = path[i]
         if key ~= "units" then
-            parts[#parts + 1] = L.sections[key] or Humanize(key)
+            parts[#parts + 1] = Lookup(L.sections, addon, key) or Humanize(key)
         end
     end
     return table.concat(parts, " › ")
@@ -263,8 +274,10 @@ end
 local function GetDescription(entry)
     local key = entry.key
 
-    if L.descriptions[key] then
-        return L.descriptions[key]
+    local description = Lookup(L.descriptions, entry.addon, key)
+
+    if description then
+        return description
     elseif entry.kind == "string" and IsTag(key) then
         return L.tagHelp
     elseif TEXTURE_KEYS[key] then
@@ -402,11 +415,8 @@ local function CreateSlider(parent, name, entry, minValue, maxValue, step)
     minValue = math.min(minValue, value)
     maxValue = math.max(maxValue, value)
 
-    local slider = CreateFrame("Slider", nil, parent, "UISliderTemplateWithLabels")
+    local slider = CreateFrame("Slider", nil, parent, "MinimalSliderTemplate")
     slider:SetWidth(170)
-    slider.Low:Hide()
-    slider.High:Hide()
-    slider.Text:Hide()
 
     local valueText = slider:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
     valueText:SetPoint("LEFT", slider, "RIGHT", 10, 0)
@@ -627,7 +637,7 @@ local function BuildPage(page, name)
     local lastSection
 
     for _, entry in ipairs(registry[name].entries) do
-        local section = GetSectionTitle(entry.path)
+        local section = GetSectionTitle(entry.path, name)
 
         if section ~= lastSection then
             lastSection = section
