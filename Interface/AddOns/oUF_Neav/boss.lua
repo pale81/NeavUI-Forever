@@ -57,7 +57,7 @@ local function CreateBossLayout(self, unit)
     self:RegisterForClicks("AnyUp")
     self:EnableMouse(true)
 
-    self:SetScript("OnEnter", UnitFrame_OnEnter)
+    self:SetScript("OnEnter", ns.UnitFrame_OnEnter)
     self:SetScript("OnLeave", UnitFrame_OnLeave)
 
     self:SetSize(132, 46)

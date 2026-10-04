@@ -421,6 +421,7 @@ stds.wow = {
         "GameTimeFrame",
         "GameTime_UpdateTooltip",
         "GameTooltip",
+        "GameTooltip_SetDefaultAnchor",
         "GameTooltipHeaderText",
         "GameTooltipStatusBar",
         "GameTooltipText",

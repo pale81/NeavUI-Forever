@@ -264,6 +264,19 @@ ns.GetUnitColor = function(unit)
     return GameTooltip_UnitColor(unit)
 end
 
+    -- oUF 14 keeps the unit in frame.__unit, the default UnitFrame_OnEnter reads
+    -- frame.unit and would call GameTooltip:SetUnit(nil).
+
+ns.UnitFrame_OnEnter = function(self)
+    local unit = self.__unit
+    if not unit then
+        return
+    end
+
+    GameTooltip_SetDefaultAnchor(GameTooltip, self)
+    GameTooltip:SetUnit(unit)
+end
+
 ns.MultiCheck = function(what, ...)
     for i = 1, select("#", ...) do
         if what == select(i, ...) then
