@@ -28,8 +28,11 @@ local function IsIgnored(name)
 end
 
 local function GetButtonName(button, name)
+    -- The text of a data object is a value (e.g. the bug count of BugSack), only
+    -- the label is a name.
+
     local dataObject = button.dataObject
-    local label = dataObject and (dataObject.label or dataObject.text)
+    local label = dataObject and dataObject.label
     if type(label) == "string" and label ~= "" then
         return label
     end
