@@ -15,6 +15,7 @@
     <Script file="modules\durability.lua" />
     <Script file="modules\errors.lua" />
     <Script file="modules\fonts.lua" />
+    <Script file="modules\itemborders.lua" />
     <Script file="modules\movetalkinghead.lua" />
     <Script file="modules\questtracker.lua" />
     <Script file="modules\skins.lua" />
