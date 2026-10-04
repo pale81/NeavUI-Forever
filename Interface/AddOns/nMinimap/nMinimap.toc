@@ -5,6 +5,7 @@
 
 config.lua
 core.lua
+buttons.lua
 capture.lua
 calendar.lua
 clock.lua

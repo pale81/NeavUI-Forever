@@ -902,8 +902,12 @@ do
 		return createOrUpdateMadnessOfGodIhateGUIs()
 	end)
 
-	_CATEGORY = Settings.RegisterCanvasLayoutCategory(opt, _TITLE)
-	Settings.RegisterAddOnCategory(_CATEGORY)
+	if(NeavOptions_AddCategory) then
+		_CATEGORY = NeavOptions_AddCategory(opt, GetLocale() == "deDE" and "Frames verschieben" or "Move Frames")
+	else
+		_CATEGORY = Settings.RegisterCanvasLayoutCategory(opt, _TITLE)
+		Settings.RegisterAddOnCategory(_CATEGORY)
+	end
 end
 
 local slashList = C_AddOns.GetAddOnMetadata(_NAME, 'X-SlashCmdList'):gsub('%s+', '')

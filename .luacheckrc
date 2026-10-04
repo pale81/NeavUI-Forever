@@ -49,6 +49,7 @@ globals = {
     -- !NeavOptions.
     "NeavOptionsDB",
     "NeavOptions_Register",
+    "NeavOptions_AddCategory",
     "SLASH_NEAVOPTIONS1",
     "SLASH_NEAVOPTIONS2",
 
@@ -177,6 +178,11 @@ stds.wow = {
         C_ClassColor = {
             fields = {
                 "GetClassColor",
+            }
+        },
+        C_Texture = {
+            fields = {
+                "GetAtlasInfo",
             }
         },
         C_ColorUtil = {
@@ -348,6 +354,9 @@ stds.wow = {
         "ChatFrame1Tab",
         "ChatFrame2",
         "ColorPickerFrame",
+        "AddonCompartmentFrame",
+        "MinimapBackdrop",
+        "CLASS_ICON_TCOORDS",
         "ChatFrameChannelButton",
         "ChatFrameMenuButton",
         "ChatFrameToggleVoiceDeafenButton",
@@ -421,6 +430,7 @@ stds.wow = {
         "GameTimeFrame",
         "GameTime_UpdateTooltip",
         "GameTooltip",
+        "GameTooltip_Hide",
         "GameTooltip_SetDefaultAnchor",
         "GameTooltipHeaderText",
         "GameTooltipStatusBar",

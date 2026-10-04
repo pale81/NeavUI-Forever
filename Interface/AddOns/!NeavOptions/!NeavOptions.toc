@@ -3,4 +3,5 @@
 ## Notes: In-game options for the config.lua values of the NeavUI addons.
 ## SavedVariables: NeavOptionsDB
 
+locale.lua
 core.lua
