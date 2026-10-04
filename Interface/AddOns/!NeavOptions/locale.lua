@@ -43,6 +43,7 @@ local sections = {
     font = "Fonts",
     button = "Buttons",
     tab = "Chat tabs",
+    ["nMinimap.tab"] = "Info tabs (friends, guild, latency)",
     mouseover = "Mouseover",
     vehicleBar = "Vehicle bar",
     position = "Position",
@@ -57,6 +58,9 @@ local sections = {
 }
 
 local labels = {
+    ["nMinimap.show"] = "Show tabs",
+    showAlways = "Always show tabs",
+    showBelowMinimap = "Tabs below the minimap",
     scale = "Scale",
     show = "Show",
     style = "Frame style",
@@ -127,6 +131,9 @@ local labels = {
 }
 
 local descriptions = {
+    ["nMinimap.show"] = "Shows three tabs at the minimap: friends online, guild members online and latency. Their tooltips list the friends, the guild and the CPU usage of the addons.",
+    ["nMinimap.showAlways"] = "The tabs are always visible, otherwise only while the mouse is over the minimap.",
+    ["nMinimap.showBelowMinimap"] = "The tabs are placed below the minimap instead of above it.",
     scale = "Size of the frame.",
     mouseoverText = "Health and power texts are only shown while the mouse is over the frame.",
     healthTag = "Text on the health bar.",
@@ -179,6 +186,7 @@ if GetLocale() == "deDE" then
         font = "Schriften",
         button = "Buttons",
         tab = "Chat-Reiter",
+        ["nMinimap.tab"] = "Info-Reiter (Freunde, Gilde, Latenz)",
         mouseover = "Bei Mauskontakt",
         vehicleBar = "Fahrzeugleiste",
         position = "Position",
@@ -300,6 +308,7 @@ if GetLocale() == "deDE" then
         instanceDifficulty = "Schwierigkeitsgrad nur bei Mauskontakt",
         zoneText = "Zonenname bei Mauskontakt",
         showAlways = "Reiter immer anzeigen",
+        ["nMinimap.show"] = "Reiter anzeigen",
         showBelowMinimap = "Reiter unter der Minimap",
         collectButtons = "Addon-Symbole sammeln",
         -- nPower
@@ -351,6 +360,9 @@ if GetLocale() == "deDE" then
     }
 
     descriptions = {
+        ["nMinimap.show"] = "Zeigt drei Reiter an der Minimap: Freunde online, Gildenmitglieder online und Latenz. Ihre Tooltips listen die Freunde, die Gilde und die CPU-Nutzung der Addons.",
+        ["nMinimap.showAlways"] = "Die Reiter sind immer sichtbar, sonst nur solange die Maus über der Minimap ist.",
+        ["nMinimap.showBelowMinimap"] = "Die Reiter stehen unter statt über der Minimap.",
         scale = "Größe des Fensters.",
         mouseoverText = "Gesundheits- und Ressourcentexte erscheinen nur, solange die Maus über dem Fenster ist.",
         healthTag = "Text auf der Gesundheitsleiste.",
