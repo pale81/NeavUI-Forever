@@ -147,7 +147,7 @@ local function CreateBossLayout(self, unit)
 
         -- Raid Target Indicator
 
-    self.RaidTargetIndicator = self.Health:CreateTexture("$parentRaidTargetIndicator", "OVERLAY", self)
+    self.RaidTargetIndicator = self.Health:CreateTexture("$parentRaidTargetIndicator", "OVERLAY")
     self.RaidTargetIndicator:SetPoint("CENTER", self, "TOPRIGHT", -9, -5)
     self.RaidTargetIndicator:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
     self.RaidTargetIndicator:SetSize(26, 26)
