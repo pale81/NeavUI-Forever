@@ -3,7 +3,6 @@
     <Script file="localization.lua" />
     <Script file="options.lua" />
 
-    <Include file="modules\orderhall.xml" />
     <Include file="modules\coords.xml" />
 
     <Script file="core.lua" />
@@ -16,12 +15,10 @@
     <Script file="modules\durability.lua" />
     <Script file="modules\errors.lua" />
     <Script file="modules\fonts.lua" />
-    <Script file="modules\objectivetracker.lua" />
     <Script file="modules\movetalkinghead.lua" />
     <Script file="modules\questtracker.lua" />
     <Script file="modules\skins.lua" />
     <Script file="modules\spellid.lua" />
-    <Script file="modules\warning.lua" />
     <Script file="modules\vignette.lua" />
 
     <Frame name="nCore">

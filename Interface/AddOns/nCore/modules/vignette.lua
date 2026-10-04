@@ -18,16 +18,10 @@ function nCore:VignetteAlert()
             local vignetteInfo = C_VignetteInfo.GetVignetteInfo(id)
             if not vignetteInfo then return end
 
-            local atlasInfo = C_Texture.GetAtlasInfo(vignetteInfo.atlasName)
-            local left = atlasInfo.leftTexCoord * 256
-            local right = atlasInfo.rightTexCoord * 256
-            local top = atlasInfo.topTexCoord * 256
-            local bottom = atlasInfo.bottomTexCoord * 256
-
-            local str = "|TInterface\\MINIMAP\\ObjectIconsAtlas:0:0:0:0:256:256:"..(left)..":"..(right)..":"..(top)..":"..(bottom).."|t"
+            local str = vignetteInfo.atlasName and CreateAtlasMarkup(vignetteInfo.atlasName, 16, 16) or ""
 
             if vignetteInfo.name ~= "Garrison Cache" and vignetteInfo.name ~= "Full Garrison Cache" and vignetteInfo.name ~= nil then
-                RaidNotice_AddMessage(RaidWarningFrame, str.." "..vignetteInfo.name.." spotted!", ChatTypeInfo["RAID_WARNING"])
+                RaidWarningFrame:AddMessage(str.." "..vignetteInfo.name.." spotted!", ChatTypeInfo["RAID_WARNING"])
                 print(str.." "..vignetteInfo.name,"spotted!")
                 self.vignettes[id] = true
             end

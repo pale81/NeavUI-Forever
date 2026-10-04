@@ -6,7 +6,7 @@ function nCore:AutoQuest()
         if GetNumAutoQuestPopUps() > 0 then
             local questId, questType = GetAutoQuestPopUp(1)
             if questType == "COMPLETE" then
-                local index = GetQuestLogIndexByID(questId)
+                local index = C_QuestLog.GetLogIndexForQuestID(questId)
                 ShowQuestComplete(index)
             end
             nCore.PopupQuestTicker:Cancel()
@@ -16,7 +16,7 @@ function nCore:AutoQuest()
     -- Funcion to ignore specific NPCs
     local function isNpcBlocked(actionType)
         local npcGuid = UnitGUID("target") or nil
-        if npcGuid then
+        if npcGuid and not issecretvalue(npcGuid) then
             local _, _, _, _, _, npcID = strsplit("-", npcGuid)
             if npcID then
                 -- Ignore specific NPCs for selecting, accepting and turning-in quests (required if automation has consequences)
@@ -161,7 +161,7 @@ function nCore:AutoQuest()
         if event == "GOSSIP_SHOW" or event == "QUEST_GREETING" then
 
             -- Select quests
-            if UnitExists("npc") or QuestFrameGreetingPanel:IsShown() or GossipFrameGreetingPanel:IsShown() then
+            if UnitExists("npc") or QuestFrameGreetingPanel:IsShown() or GossipFrame:IsShown() then
 
                 -- Don"t select quests for blocked NPCs
                 if isNpcBlocked("Select") then return end
@@ -169,39 +169,33 @@ function nCore:AutoQuest()
                 -- Select quests
                 if event == "QUEST_GREETING" then
                     -- Quest greeting
-                    local availableCount = GetNumAvailableQuests() + GetNumActiveQuests()
-                    if availableCount >= 1 then
-                        for i = 1, availableCount do
-                            if _G["QuestTitleButton" .. i].isActive == 0 then
-                                -- Select available quests
-                                C_Timer.After(0.01, function() SelectAvailableQuest(_G["QuestTitleButton" .. i]:GetID()) end)
-                            else
-                                -- Select completed quests
-                                local _, isComplete = GetActiveTitle(i)
-                                if isComplete then
-                                    SelectActiveQuest(_G["QuestTitleButton" .. i]:GetID())
-                                end
-                            end
+                    for i = 1, GetNumActiveQuests() do
+                        -- Select completed quests
+                        local _, isComplete = GetActiveTitle(i)
+                        if isComplete then
+                            SelectActiveQuest(i)
+                            return
                         end
+                    end
+
+                    if GetNumAvailableQuests() >= 1 then
+                        -- Select available quests
+                        C_Timer.After(0.01, function() SelectAvailableQuest(1) end)
                     end
                 else
                     -- Gossip frame
-                    local availableCount = GetNumGossipAvailableQuests() + GetNumGossipActiveQuests()
-                    if availableCount >= 1 then
-                        for i = 1, availableCount do
-                            if _G["GossipTitleButton" .. i].type == "Available" then
-                                -- Select available quests
-                                C_Timer.After(0.01, function() SelectGossipAvailableQuest(i) end)
-                            else
-                                -- Select completed quests
-                                local isComplete = select(i * 6 - 5 + 3, GetGossipActiveQuests()) -- 4th argument of 6 argument line
-                                if isComplete then
-                                    if _G["GossipTitleButton" .. i].type == "Active" then
-                                        SelectGossipActiveQuest(_G["GossipTitleButton" .. i]:GetID())
-                                    end
-                                end
-                            end
+                    for _, questInfo in ipairs(C_GossipInfo.GetActiveQuests()) do
+                        -- Select completed quests
+                        if questInfo.isComplete then
+                            C_GossipInfo.SelectActiveQuest(questInfo.questID)
+                            return
                         end
+                    end
+
+                    local availableQuests = C_GossipInfo.GetAvailableQuests()
+                    if #availableQuests >= 1 then
+                        -- Select available quests
+                        C_Timer.After(0.01, function() C_GossipInfo.SelectAvailableQuest(availableQuests[1].questID) end)
                     end
                 end
             end

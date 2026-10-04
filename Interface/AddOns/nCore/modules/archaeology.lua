@@ -2,7 +2,7 @@ local _, nCore = ...
 
 function nCore:ArchaeologyHelper()
     local SURVEY_SPELL_ID = 80451
-    local FISHING_POLE = GetItemSubClassInfo(2, 20)
+    local FISHING_POLE = C_Item.GetItemSubClassInfo(2, 20)
 
     local override_binding_on = nil
     local previousClickTime = nil
@@ -49,7 +49,10 @@ function nCore:ArchaeologyHelper()
 
         if not mapID then return end
 
-        if ArchaeologyMapUpdateAll(mapID) > 0  and CanScanResearchSite() and GetSpellCooldown(SURVEY_SPELL_ID) == 0 and not IsEquippedItemType(FISHING_POLE) then
+        local digSites = C_ResearchInfo.GetDigSitesForMap(mapID)
+        local cooldown = C_Spell.GetSpellCooldown(SURVEY_SPELL_ID)
+
+        if digSites and #digSites > 0 and CanScanResearchSite() and cooldown and not cooldown.isActive and not C_Item.IsEquippedItemType(FISHING_POLE) then
             if GetNumLootItems() == 0 and previousClickTime then
                 local doubleClickTime = GetTime() - previousClickTime
 

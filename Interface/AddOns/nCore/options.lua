@@ -3,10 +3,18 @@ local L = nCore.L
 
 local pairs = pairs
 
-local Options = CreateFrame("Frame", "nCoreOptions", InterfaceOptionsFramePanelContainer)
+local Options = CreateFrame("Frame", "nCoreOptions")
 Options.controlTable = {}
-Options.name = GetAddOnMetadata(addon, "Title")
-Options.okay = function(self)
+Options.name = C_AddOns.GetAddOnMetadata(addon, "Title")
+
+    -- The settings panel calls OnCommit, OnDefault and OnRefresh on canvas frames.
+    -- The controls are created when the panel is shown for the first time.
+
+Options.OnCommit = function(self)
+    if not self.controls then
+        return
+    end
+
     for _, control in pairs(self.controls) do
         nCoreDB[control.var] = control:GetValue()
     end
@@ -17,26 +25,25 @@ Options.okay = function(self)
         end
     end
 end
-Options.cancel = function(self)
-    for _, control in pairs(self.controls) do
-        if control.oldValue and control.oldValue ~= control:GetValue() then
-            control:SetValue()
-        end
-    end
-end
-Options.default = function(self)
+Options.OnDefault = function(self)
     for _, control in pairs(self.controls) do
         nCoreDB[control.var] = true
     end
     ReloadUI()
 end
-Options.refresh = function(self)
+Options.OnRefresh = function(self)
+    if not self.controls then
+        return
+    end
+
     for _, control in pairs(self.controls) do
         control:SetValue()
         control.oldValue = control:GetValue()
     end
 end
-InterfaceOptions_AddCategory(Options)
+
+local category = Settings.RegisterCanvasLayoutCategory(Options, Options.name)
+Settings.RegisterAddOnCategory(category)
 
 Options:Hide()
 Options:SetScript("OnShow", function()
@@ -139,15 +146,6 @@ Options:SetScript("OnShow", function()
             label = L.MapCoords,
             tooltip = L.MapCoordsTooltip,
             var = "MapCoords",
-        },
-        {
-            type = "CheckBox",
-            name = "ObjectiveTracker",
-            parent = Options,
-            label = L.ObjectiveTracker,
-            tooltip = L.ObjectiveTrackerTooltip,
-            var = "ObjectiveTracker",
-            needsRestart = true,
         },
         {
             type = "CheckBox",

@@ -18,7 +18,7 @@ function nCore:AutoGreed()
 
     f:SetScript("OnEvent", function(_, _, rollID)
         if not nCoreDB.AutoGreed then return end
-        if maxLevelOnly and IsPlayerAtEffectiveMaxLevel() then
+        if not maxLevelOnly or UnitLevel("player") >= GetMaxLevelForPlayerExpansion() then
             local _, name, _, quality, BoP, _, _, canDisenchant = GetLootRollItemInfo(rollID)
             if quality == 2 and not BoP and not skipList[name] then
                 RollOnLoot(rollID, (disenchantItems and canDisenchant and 3) or 2)
