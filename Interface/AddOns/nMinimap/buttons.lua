@@ -110,6 +110,42 @@ local function SetupIcon(button, atlas, texture, texCoord, text)
     fontString:SetWidth(fontString:GetWidth() + 24)
 end
 
+    -- Tooltips: LibDataBroker objects build their tooltip at the menu entry, like
+    -- LibDBIcon does at the minimap button. Other buttons show their own tooltip.
+
+local function ShowButtonTooltip(menuButton, button)
+    local dataObject = button.dataObject
+
+    if dataObject and dataObject.OnTooltipShow then
+        GameTooltip:SetOwner(menuButton, "ANCHOR_NONE")
+        GameTooltip:SetPoint("TOPRIGHT", menuButton, "TOPLEFT", -8, 0)
+        dataObject.OnTooltipShow(GameTooltip)
+        GameTooltip:Show()
+    elseif dataObject and dataObject.OnEnter then
+        dataObject.OnEnter(menuButton)
+    elseif not dataObject then
+        local onEnter = button:GetScript("OnEnter")
+        if onEnter then
+            onEnter(button)
+        end
+    end
+end
+
+local function HideButtonTooltip(menuButton, button)
+    local dataObject = button.dataObject
+
+    if dataObject and dataObject.OnLeave then
+        dataObject.OnLeave(menuButton)
+    elseif not dataObject then
+        local onLeave = button:GetScript("OnLeave")
+        if onLeave then
+            onLeave(button)
+        end
+    end
+
+    GameTooltip:Hide()
+end
+
 local function SortByName(a, b)
     return a.name:lower() < b.name:lower()
 end
@@ -129,6 +165,12 @@ Menu.ModifyMenu("MENU_MINIMAP_TRACKING", function(_, rootDescription)
                 texCoord = texCoord,
                 func = function(_, menuInputData)
                     ClickButton(data.button, menuInputData.buttonName)
+                end,
+                funcOnEnter = function(menuButton)
+                    ShowButtonTooltip(menuButton, data.button)
+                end,
+                funcOnLeave = function(menuButton)
+                    HideButtonTooltip(menuButton, data.button)
                 end,
             }
         end
