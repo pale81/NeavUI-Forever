@@ -1,8 +1,8 @@
 local _, nBuff = ...
 
+    -- Position, icon size, icons per row and padding are set with Edit Mode.
+
 nBuff.Config = {
-    buffSize = 36,
-    buffScale = 1,
     buffBorderColor = {1, 1, 1},
 
     buffFontSize = 14,
@@ -11,15 +11,10 @@ nBuff.Config = {
     borderBuff = "Interface\\AddOns\\nBuff\\media\\textureOverlay",
     borderDebuff = "Interface\\AddOns\\nBuff\\media\\textureDebuff",
 
-    debuffSize = 36,
-    debuffScale = 1,
-
     debuffFontSize = 14,
     debuffCountSize = 16,
 
-    paddingX = 7,
-    paddingY = 7,
-    buffPerRow = 8,
+    tempEnchantBorderColor = {0.9, 0.25, 0.9},
 
     durationFont = STANDARD_TEXT_FONT,
     countFont = STANDARD_TEXT_FONT,

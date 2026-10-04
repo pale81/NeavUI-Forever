@@ -2,17 +2,23 @@
 local _, nPower = ...
 local config = nPower.Config
 
+    -- Health and power values can be secret in restricted content. Secret values can't be
+    -- compared or used in arithmetic, but StatusBar:SetValue, string.format and the
+    -- C_StringUtil/AbbreviateNumbers helpers accept them.
+
+local function IsSecret(value)
+    return issecretvalue(value)
+end
+
 local function GetHPPercentage()
-    local currentHP = UnitHealth("player")
-    local maxHP = UnitHealthMax("player")
-    return math.floor(100*currentHP/maxHP)
+    return string.format("%d", UnitHealthPercent("player", true, CurveConstants.ScaleTo100))
 end
 
 local function CalcRuneCooldown(num)
     local start, duration, runeReady = GetRuneCooldown(num)
 
     -- Sometimes GetRuneCooldown returns nil for some reason.
-    if not start then
+    if not start or IsSecret(start) or IsSecret(duration) or IsSecret(runeReady) then
         return
     end
 
@@ -28,6 +34,9 @@ end
 
 local function HolyPowerCheck(num)
     local curPower = UnitPower("player", Enum.PowerType.HolyPower)
+    if IsSecret(curPower) then
+        return "|cffC0C0C0?|r"
+    end
     return num <= curPower and "|cffFFFF00#|r" or "|cffC0C0C0-|r"
 end
 
@@ -48,7 +57,7 @@ local function SetPowerColor(self)
     local currentPower = UnitPower("player", powerType)
     local maxPower = UnitPowerMax("player", powerType)
 
-    if (UnitIsDeadOrGhost("target")) then
+    if (IsSecret(currentPower) or IsSecret(maxPower) or UnitIsDeadOrGhost("target")) then
         return 1, 1, 1
     elseif (currentPower == maxPower-1) then
         return 0.9, 0.7, 0.0
@@ -59,17 +68,19 @@ local function SetPowerColor(self)
     end
 end
 
+    -- The arrows are anchored to the end of the bar fill, so no arithmetic on the
+    -- (possibly secret) power values is needed to position them.
+
 local function UpdateArrow(self)
-    if (UnitPower("player") == 0) then
+    local power = UnitPower("player")
+
+    if (not IsSecret(power) and power == 0) then
         self.Power.Below:SetAlpha(0.3)
         self.Power.Above:SetAlpha(0.3)
     else
         self.Power.Below:SetAlpha(1)
         self.Power.Above:SetAlpha(1)
     end
-
-    local newPosition = UnitPower("player") / UnitPowerMax("player") * self.Power:GetWidth()
-    self.Power.Below:SetPoint("TOP", self.Power, "BOTTOMLEFT", newPosition, 0)
 end
 
 local function UpdateBarValue(self)
@@ -77,7 +88,13 @@ local function UpdateBarValue(self)
     self.Power:SetMinMaxValues(0, UnitPowerMax("player"))
     self.Power:SetValue(min)
 
-    if (config.valueAbbrev) then
+    if (IsSecret(min)) then
+        if (config.valueAbbrev) then
+            self.Power.Value:SetText(C_StringUtil.TruncateWhenZero(AbbreviateNumbers(min)))
+        else
+            self.Power.Value:SetText(C_StringUtil.TruncateWhenZero(min))
+        end
+    elseif (config.valueAbbrev) then
         self.Power.Value:SetText(min > 0 and nPower:FormatValue(min) or "")
     else
         self.Power.Value:SetText(min > 0 and min or "")
@@ -101,13 +118,14 @@ end
 
 local function UpdateBarVisibility(self)
     local _, powerToken = UnitPowerType("player")
+    local power = UnitPower("player")
     local newAlpha = nil
 
     if (not config.showPowerType[powerToken] or UnitIsDeadOrGhost("player") or UnitHasVehicleUI("player")) then
         self.Power:SetAlpha(0)
     elseif (InCombatLockdown()) then
         newAlpha = config.activeAlpha
-    elseif (not InCombatLockdown() and UnitPower("player") > 0) then
+    elseif (not InCombatLockdown() and (IsSecret(power) or power > 0)) then
         newAlpha = config.inactiveAlpha
     else
         newAlpha = config.emptyAlpha
@@ -173,7 +191,7 @@ end
 function nPower_OnLoad(self)
     self.updateTimer = 0
     self.class = select(2, UnitClass("player"))
-    self.spec = GetSpecialization()
+    self.spec = C_SpecializationInfo.GetSpecialization()
 
     self:SetScale(config.scale)
     self:SetSize(18, 18)
@@ -224,7 +242,7 @@ function nPower_OnEvent(self, event, ...)
         else
             local nump
             if (self.class == "WARLOCK") then
-                nump = WarlockPowerBar_UnitPower("player")
+                nump = UnitPower("player", Enum.PowerType.SoulShards)
             elseif (self.class == "PALADIN") then
                 nump = UnitPower("player", Enum.PowerType.HolyPower)
             elseif (self.class == "ROGUE" or self.class == "DRUID") then
@@ -236,7 +254,11 @@ function nPower_OnEvent(self, event, ...)
             end
 
             self.extraPoints:SetTextColor(SetPowerColor(self))
-            self.extraPoints:SetText(nump == 0 and "" or nump)
+            if (IsSecret(nump)) then
+                self.extraPoints:SetText(C_StringUtil.TruncateWhenZero(nump))
+            else
+                self.extraPoints:SetText(nump == 0 and "" or nump)
+            end
 
             if (not self.extraPoints:IsShown()) then
                 self.extraPoints:Show()
@@ -276,14 +298,8 @@ function nPower_OnEvent(self, event, ...)
         securecall("UIFrameFadeIn", self, 0.35, self:GetAlpha(), 1)
     elseif (event == "PLAYER_REGEN_ENABLED") then
         securecall("UIFrameFadeOut", self, 0.35, self:GetAlpha(), config.inactiveAlpha)
-    elseif (event == "PLAYER_LEVEL_UP") then
-        local level = ...
-        if level >= PALADINPOWERBAR_SHOW_LEVEL then
-            self:UnregisterEvent("PLAYER_LEVEL_UP")
-            nPower.SetupHolyPower(self)
-        end
     elseif (event == "PLAYER_TALENT_UPDATE") then
-        self.spec = GetSpecialization()
+        self.spec = C_SpecializationInfo.GetSpecialization()
         nPower.UpdateHealthTextLocation(self)
     end
 end
@@ -343,7 +359,7 @@ function nPower.SetupPower(self)
     self.Power.Below:SetHeight(14)
     self.Power.Below:SetWidth(14)
     self.Power.Below:SetTexture([[Interface\AddOns\nPower\media\textureArrowBelow]])
-    self.Power.Below:SetPoint("TOP", self.Power, "BOTTOMLEFT", 0, 0)
+    self.Power.Below:SetPoint("TOP", self.Power:GetStatusBarTexture(), "BOTTOMRIGHT", 0, 0)
 
     self.Power.Above = self.Power:CreateTexture(nil, "BACKGROUND")
     self.Power.Above:SetHeight(14)
@@ -405,11 +421,6 @@ function nPower.SetupRunes(self)
 end
 
 function nPower.SetupHolyPower(self)
-    if UnitLevel("player") < PALADINPOWERBAR_SHOW_LEVEL then
-        self:RegisterEvent("PLAYER_LEVEL_UP")
-        return
-    end
-
     self.Rune = {}
 
     for i = 1, 5 do

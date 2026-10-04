@@ -34,47 +34,31 @@ local CUSTOM_FACTION_BAR_COLORS = {
     [8] = {r = 0, g = 0.75, b = 0.44},
 }
 
-hooksecurefunc("ReputationFrame_Update", function(showLFGPulse)
-    local numFactions = GetNumFactions()
-    local factionOffset = FauxScrollFrame_GetOffset(ReputationListScrollFrame)
+    -- The reputation frame passes FACTION_BAR_COLORS[reaction] to UpdateBarColor.
+    -- The status tracking bar uses reaction colored atlases, so it needs no override.
 
-    for i=1, NUM_FACTIONS_DISPLAYED, 1 do
-        local factionIndex = factionOffset + i
-        local factionBar = _G["ReputationBar"..i.."ReputationBar"]
-
-        if factionIndex <= numFactions then
-            local _, _, standingID, _, _, _, _, _, _, _, _, _, _, factionID = GetFactionInfo(factionIndex)
-
-            local colorIndex = standingID
-
-            local friendID = GetFriendshipReputation(factionID)
-
-            if friendID ~= nil then
-                colorIndex = 5                              -- always color friendships green
-            end
-
-            local color = CUSTOM_FACTION_BAR_COLORS[colorIndex]
-            factionBar:SetStatusBarColor(color.r, color.g, color.b)
+local function GetFactionColorIndex(color)
+    for index, factionColor in pairs(FACTION_BAR_COLORS) do
+        if factionColor == color then
+            return index
         end
     end
-end)
+end
 
-hooksecurefunc(ReputationBarMixin, "Update", function(self)
-    local _, reaction, _, _, _, factionID = GetWatchedFactionInfo()
-    local colorIndex = reaction
-    local friendshipID = GetFriendshipReputation(factionID)
+hooksecurefunc(ReputationBarMixin, "UpdateBarColor", function(self, color)
+    local colorIndex = GetFactionColorIndex(color)
+    local customColor = colorIndex and CUSTOM_FACTION_BAR_COLORS[colorIndex]
 
-    if friendshipID then
-        colorIndex = 5     -- always color friendships green
+    if customColor then
+        self.Fill:SetVertexColor(customColor.r, customColor.g, customColor.b)
     end
-
-    local color = CUSTOM_FACTION_BAR_COLORS[colorIndex]
-    self:SetBarColor(color.r, color.g, color.b, 1)
 end)
 
-    -- Override the default GameTooltip_UnitColor function.
+    -- Custom unit colors for the unit name line of tooltips.
+    -- Overriding GameTooltip_UnitColor would taint the tooltip code, so the color
+    -- is applied by a line callback that runs after the default one.
 
-function GameTooltip_UnitColor(unit) -- luacheck: ignore
+local function GetUnitColor(unit)
     local r, g, b
 
     if UnitIsDead(unit) or UnitIsGhost(unit) or UnitIsTapDenied(unit) then
@@ -83,11 +67,11 @@ function GameTooltip_UnitColor(unit) -- luacheck: ignore
         b = 0.5
     elseif UnitIsPlayer(unit) then
         local _, class = UnitClass(unit)
-        if class then
+        if class and not issecretvalue(class) then
             r = RAID_CLASS_COLORS[class].r
             g = RAID_CLASS_COLORS[class].g
             b = RAID_CLASS_COLORS[class].b
-        else
+        elseif not class then
             if UnitIsFriend(unit, "player") then
                 r = 0.60
                 g = 0.60
@@ -99,6 +83,7 @@ function GameTooltip_UnitColor(unit) -- luacheck: ignore
             end
         end
     elseif UnitPlayerControlled(unit) then
+        local isPVP = UnitIsPVP(unit)
         if UnitCanAttack(unit, "player") then
             if not UnitCanAttack("player", unit) then
                 r = 157/255
@@ -113,7 +98,7 @@ function GameTooltip_UnitColor(unit) -- luacheck: ignore
             r = 1
             g = 1
             b = 0
-        elseif UnitIsPVP(unit) then
+        elseif not issecretvalue(isPVP) and isPVP then
             r = 0
             g = 1
             b = 0
@@ -125,7 +110,7 @@ function GameTooltip_UnitColor(unit) -- luacheck: ignore
     else
         local reaction = UnitReaction(unit, "player")
 
-        if reaction then
+        if reaction and not issecretvalue(reaction) and TOOLTIP_FACTION_COLORS[reaction] then
             r = TOOLTIP_FACTION_COLORS[reaction].r
             g = TOOLTIP_FACTION_COLORS[reaction].g
             b = TOOLTIP_FACTION_COLORS[reaction].b
@@ -139,10 +124,29 @@ function GameTooltip_UnitColor(unit) -- luacheck: ignore
     return r, g, b
 end
 
-    -- Override the name background on default unit frames.
-
-hooksecurefunc("TargetFrame_CheckFaction", function(self)
-    if UnitPlayerControlled(self.unit) then
-        self.nameBackground:SetVertexColor(GameTooltip_UnitColor(self.unit))
+TooltipDataProcessor.AddLinePreCall(Enum.TooltipDataLineType.UnitName, function(tooltip, lineData)
+    local unit = lineData.unitToken
+    if unit and not issecretvalue(unit) then
+        local r, g, b = GetUnitColor(unit)
+        if r then
+            lineData.leftColor = CreateColor(r, g, b)
+        end
     end
 end)
+
+    -- Override the name background on default unit frames.
+
+local function UpdateReputationColor(self)
+    if UnitPlayerControlled(self.unit) then
+        local r, g, b = GetUnitColor(self.unit)
+        if r then
+            self.TargetFrameContent.TargetFrameContentMain.ReputationColor:SetVertexColor(r, g, b)
+        end
+    end
+end
+
+for _, frame in ipairs({TargetFrame, FocusFrame}) do
+    if frame and frame.CheckFaction then
+        hooksecurefunc(frame, "CheckFaction", UpdateReputationColor)
+    end
+end
