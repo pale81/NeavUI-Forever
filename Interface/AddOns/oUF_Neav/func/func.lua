@@ -163,7 +163,7 @@ local function GetSecretPowerValues(unit, cur, max)
     local perc = UnitPowerPercent(unit, nil, true, CurveConstants.ScaleTo100)
 
     return {
-        ["$cur"] = C_StringUtil.TruncateWhenZero(AbbreviateNumbers(cur)),
+        ["$cur"] = AbbreviateNumbers(cur),
         ["$max"] = AbbreviateNumbers(max),
         ["$deficit"] = C_StringUtil.TruncateWhenZero(UnitPowerMissing(unit)),
         ["$perc"] = format("%d%%", perc),
