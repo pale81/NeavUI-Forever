@@ -23,10 +23,9 @@
 --]]
 
 local unpack = unpack
-local select = select
 local type = type
 
-local addonName = select(1, GetAddOnInfo("!Beautycase"))
+local addonName = ...
 local formatName = "|cffFF0000"..addonName
 
 local textureNormal = "Interface\\AddOns\\!Beautycase\\media\\textureNormal"
@@ -331,20 +330,32 @@ local function addapi(object)
 end
 
 
-local handled = {
-    ["Frame"] = true
+local handled = {}
+
+local function AddAPIToType(object)
+    if (object and object.GetObjectType and not handled[object:GetObjectType()]) then
+        handled[object:GetObjectType()] = true
+        addapi(object)
+    end
+end
+
+    -- Add the API to all common widget types (EnumerateFrames may not exist).
+
+local widgetTypes = {
+    "Frame", "Button", "CheckButton", "StatusBar", "EditBox", "ScrollFrame", "Slider",
+    "Cooldown", "GameTooltip", "MessageFrame", "ScrollingMessageFrame", "Model", "PlayerModel",
 }
 
-local object = CreateFrame("Frame")
-addapi(object)
+for _, widgetType in ipairs(widgetTypes) do
+    AddAPIToType(CreateFrame(widgetType))
+end
 
-object = EnumerateFrames()
+AddAPIToType(Minimap)
 
-while object do
-    if (not handled[object:GetObjectType()]) then
-        addapi(object)
-        handled[object:GetObjectType()] = true
+if (EnumerateFrames) then
+    local object = EnumerateFrames()
+    while object do
+        AddAPIToType(object)
+        object = EnumerateFrames(object)
     end
-
-    object = EnumerateFrames(object)
 end

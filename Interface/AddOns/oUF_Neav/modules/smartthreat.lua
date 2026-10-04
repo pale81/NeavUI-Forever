@@ -2,19 +2,26 @@ local _, ns = ...
 local oUF = ns.oUF or oUF
 
 local Update = function(self, event, unit)
-    if unit ~= self.unit then
+    if unit ~= self.__unit then
         return
     end
 
     local threat = self.ThreatGlow
-    unit = unit or self.unit
 
     local status
 
-    if self.feedbackUnit and self.feedbackUnit ~= unit then
-        status = UnitThreatSituation(self.feedbackUnit, unit)
-    else
-        status = UnitThreatSituation(unit)
+    if UnitExists(unit) then
+        if self.feedbackUnit and self.feedbackUnit ~= unit and UnitExists(self.feedbackUnit) then
+            status = UnitThreatSituation(self.feedbackUnit, unit)
+        else
+            status = UnitThreatSituation(unit)
+        end
+    end
+
+        -- The threat status is secret in restricted content.
+
+    if issecretvalue(status) then
+        status = nil
     end
 
     if status and status > 0 then
@@ -43,7 +50,7 @@ local Path = function(self, ...)
 end
 
 local ForceUpdate = function(element)
-    return Path(element.__owner, "ForceUpdate", element.__owner.unit)
+    return Path(element.__owner, "ForceUpdate", element.__owner.__unit)
 end
 
 local Enable = function(self)

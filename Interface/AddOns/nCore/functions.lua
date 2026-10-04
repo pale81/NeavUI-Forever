@@ -18,7 +18,6 @@ function nCore:SetDefaultOptions()
     nCore:RegisterDefaultSetting("Durability", true)
     nCore:RegisterDefaultSetting("ErrorFilter", true)
     nCore:RegisterDefaultSetting("Fonts", true)
-    nCore:RegisterDefaultSetting("ObjectiveTracker", true)
     nCore:RegisterDefaultSetting("MapCoords", true)
     nCore:RegisterDefaultSetting("MoveTalkingHeads", true)
     nCore:RegisterDefaultSetting("QuestTracker", true)
@@ -106,7 +105,7 @@ function nCore:CreateCheckBox(cfg)
     cfg.offsetY = cfg.offsetY or -6
     cfg.relativeTo = cfg.relativeTo or prevControl
 
-    local checkBox = CreateFrame("CheckButton", cfg.name, cfg.parent, "InterfaceOptionsCheckButtonTemplate")
+    local checkBox = CreateFrame("CheckButton", cfg.name, cfg.parent, "UICheckButtonTemplate")
     checkBox:SetPoint(cfg.initialPoint, cfg.relativeTo, cfg.relativePoint, cfg.offsetX, cfg.offsetY)
     checkBox.Text:SetText(cfg.label)
     checkBox.GetValue = function(self) return checkBox:GetChecked() end

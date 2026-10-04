@@ -45,17 +45,19 @@ local function Update(self, event)
 
     local NO_SPEC_FILTER = 0
     local specID = GetLootSpecialization()
+    local currentSpec = C_SpecializationInfo.GetSpecialization()
 
     if specID and specID > NO_SPEC_FILTER then
-        local _, _, _, texture, _, _ = GetSpecializationInfoByID(specID)
+        local _, _, _, texture = GetSpecializationInfoForSpecID(specID)
         element:SetTexture(texture)
         element:Show()
         if element.Border then element.Border:Show() end
-    elseif specID and specID == NO_SPEC_FILTER and element.alwaysShow then
-        local id, _, _, texture, _, _, _ = GetSpecializationInfo(GetSpecialization())
+    elseif specID and specID == NO_SPEC_FILTER and element.alwaysShow and currentSpec and currentSpec > 0 then
+        local id, _, _, texture = C_SpecializationInfo.GetSpecializationInfo(currentSpec)
         specID = id
         element:SetTexture(texture)
         element:Show()
+        if element.Border then element.Border:Show() end
     else
         element:Hide()
         if element.Border then element.Border:Hide() end
@@ -93,8 +95,8 @@ local function Enable(self)
         element.__owner = self
         element.ForceUpdate = ForceUpdate
 
-        if self.unit == "player" then
-            self:RegisterEvent("PLAYER_LOGIN", Path, true)
+        if self.__unit == "player" then
+            self:RegisterEvent("PLAYER_ENTERING_WORLD", Path, true)
             self:RegisterEvent("PLAYER_LOOT_SPEC_UPDATED", Path, true)
             self:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED", Path, true)
         end
@@ -108,7 +110,7 @@ local function Disable(self)
     if element then
         element:Hide()
 
-        self:UnregisterEvent("PLAYER_LOGIN", Path)
+        self:UnregisterEvent("PLAYER_ENTERING_WORLD", Path)
         self:UnregisterEvent("PLAYER_LOOT_SPEC_UPDATED", Path)
         self:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED", Path)
     end

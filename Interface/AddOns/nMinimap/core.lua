@@ -1,111 +1,79 @@
-
 local _, nMinimap = ...
 local cfg = nMinimap.Config
 
-    -- Texture Fix
-
-Minimap:SetBlipTexture("Interface\\Minimap\\ObjectIconsAtlas")
+local cluster = MinimapCluster
 
     -- A "new" mail notification
 
-MiniMapMailFrame:SetSize(14, 14)
-MiniMapMailFrame:ClearAllPoints()
-MiniMapMailFrame:SetPoint("BOTTOMRIGHT", Minimap, -4, 5)
+local mailFrame = cluster.IndicatorFrame.MailFrame
+mailFrame:SetParent(Minimap)
+mailFrame:SetSize(14, 14)
+mailFrame:ClearAllPoints()
+mailFrame:SetPoint("BOTTOMRIGHT", Minimap, -4, 5)
 
-MiniMapMailBorder:SetTexture(nil)
-MiniMapMailIcon:SetTexture(nil)
+for _, region in pairs({
+    mailFrame.MailIcon,
+    mailFrame.NewMailFlipbook,
+    mailFrame.MailReminderFlipbook,
+}) do
+    region:SetAlpha(0)
+end
 
-local MiniMapMailFrame_Text = MiniMapMailFrame:CreateFontString(nil, "OVERLAY")
+local MiniMapMailFrame_Text = mailFrame:CreateFontString(nil, "OVERLAY")
 MiniMapMailFrame_Text:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
-MiniMapMailFrame_Text:SetPoint("BOTTOMRIGHT", MiniMapMailFrame)
+MiniMapMailFrame_Text:SetPoint("BOTTOMRIGHT", mailFrame)
 MiniMapMailFrame_Text:SetTextColor(1, 0, 1)
+MiniMapMailFrame_Text:SetText("N")
 
-MiniMapMailBorder:SetTexture(nil)
-MiniMapMailIcon:SetTexture(nil)
+    -- Garrison/expansion landing page button
 
-MiniMapMailFrame:HookScript("OnEvent", function(self, event, ...)
-    if event == "UPDATE_PENDING_MAIL" or event == "MAIL_CLOSED" then
-        local text = HasNewMail() and "N" or ""
-        MiniMapMailFrame_Text:SetText(text)
-    end
-end)
-
-   -- Modify the lfg frame
-
-QueueStatusMinimapButton:ClearAllPoints()
-QueueStatusMinimapButton:SetPoint("TOPLEFT", Minimap, 4, -4)
-QueueStatusMinimapButton:SetSize(14, 14)
-QueueStatusMinimapButton:SetHighlightTexture(nil)
-
-QueueStatusMinimapButtonBorder:SetTexture()
-QueueStatusMinimapButton.Eye:Hide()
-
-hooksecurefunc("EyeTemplate_StartAnimating", function(self)
-    self:SetScript("OnUpdate", nil)
-end)
-
-local QueueStatusMinimapButton_Text = QueueStatusMinimapButton:CreateFontString(nil, "OVERLAY")
-QueueStatusMinimapButton_Text:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
-QueueStatusMinimapButton_Text:SetPoint("TOP", QueueStatusMinimapButton)
-QueueStatusMinimapButton_Text:SetTextColor(1, 0.4, 0)
-QueueStatusMinimapButton_Text:SetText("Q")
-
-    -- Garrison button
-
-hooksecurefunc("GarrisonLandingPageMinimapButton_UpdateIcon", function(self)
-    GarrisonLandingPageMinimapButton:SetSize(36, 36)
-    GarrisonLandingPageMinimapButton:ClearAllPoints()
-    GarrisonLandingPageMinimapButton:SetPoint("BOTTOMLEFT", Minimap, 0, 0)
-
-    if C_Garrison.GetLandingPageGarrisonType() == Enum.GarrisonType.Type_8_0 then
-        GarrisonLandingPageMinimapButton:SetScale(.70)
-    else
-        GarrisonLandingPageMinimapButton:SetScale(1)
-    end
+ExpansionLandingPageMinimapButton:HookScript("OnShow", function(self)
+    self:ClearAllPoints()
+    self:SetPoint("BOTTOMLEFT", Minimap, 0, 0)
+    self:SetScale(0.7)
 end)
 
     -- Hide all unwanted things
 
-MinimapZoomIn:Hide()
-MinimapZoomIn:UnregisterAllEvents()
+for _, frame in pairs({
+    cluster.BorderTop,
+    cluster.ZoneTextButton,
+    cluster.Tracking,
+    cluster.DielFrame,
+    MinimapCompassTexture,
+    MinimapCompassTextureUnderlay,
+}) do
+    frame:SetAlpha(0)
 
-MinimapZoomOut:Hide()
-MinimapZoomOut:UnregisterAllEvents()
+    if frame.EnableMouse then
+        frame:EnableMouse(false)
+    end
+end
 
-MiniMapWorldMapButton:Hide()
-MiniMapWorldMapButton:UnregisterAllEvents()
+    -- The zoom buttons are shown on mouseover by default.
 
-MinimapNorthTag:SetAlpha(0)
-
-MinimapBorder:Hide()
-MinimapBorderTop:Hide()
-
-MinimapZoneText:Hide()
-
-MinimapZoneTextButton:Hide()
-MinimapZoneTextButton:UnregisterAllEvents()
-
-    -- Hide the tracking button
-
-MiniMapTracking:UnregisterAllEvents()
-MiniMapTracking:Hide()
+for _, button in pairs({Minimap.ZoomIn, Minimap.ZoomOut}) do
+    button:SetAlpha(0)
+    button:EnableMouse(false)
+end
 
     -- Hide the durability frame (the armored man)
 
-DurabilityFrame:Hide()
+DurabilityFrame:SetAlpha(0)
 DurabilityFrame:UnregisterAllEvents()
 
     -- Smaller Vehicle/Mount Seat Indicator
 
 VehicleSeatIndicator:SetScale(.75)
 
-    -- Bigger minimap
+    -- New position and size. Edit Mode positions the MinimapCluster, so the minimap
+    -- is moved out of it.
 
-MinimapCluster:SetScale(cfg.scale)
-MinimapCluster:EnableMouse(false)
+cluster:EnableMouse(false)
 
-    -- New position
-
+Minimap:SetParent(UIParent)
+Minimap:SetScale(cfg.scale)
+Minimap:SetFrameStrata("LOW")
 Minimap:ClearAllPoints()
 Minimap:SetPoint(unpack(cfg.location))
 
@@ -115,29 +83,22 @@ function GetMinimapShape()
     return "SQUARE"
 end
 
-Minimap:SetMaskTexture("Interface\\ChatFrame\\ChatFrameBackground")
+local function SetSquareMask()
+    Minimap:SetMaskTexture("Interface\\ChatFrame\\ChatFrameBackground")
+end
+
+SetSquareMask()
+CVarCallbackRegistry:RegisterCallback("rotateMinimap", SetSquareMask, nMinimap)
+
 Minimap:CreateBeautyBorder(11)
 Minimap:SetBeautyBorderPadding(1)
 
-    -- Enable mousewheel zooming
+    -- Mousewheel zooming is handled by the default UI.
+    -- Right click opens the tracking menu.
 
-Minimap:EnableMouseWheel(true)
-Minimap:SetScript("OnMouseWheel", function(self, delta)
-    if delta > 0 then
-        _G.MinimapZoomIn:Click()
-    elseif delta < 0 then
-        _G.MinimapZoomOut:Click()
-    end
-end)
-
-    -- Modify the minimap tracking
-
-Minimap:SetScript("OnMouseUp", function(self, button)
-    local level, value = 1, nil
+Minimap:HookScript("OnMouseUp", function(self, button)
     if button == "RightButton" then
-        ToggleDropDownMenu(level, value, MiniMapTrackingDropDown, self, - (Minimap:GetWidth() * 0.7), -3)
-    else
-        Minimap_OnClick(self)
+        cluster.Tracking.Button:OpenMenu()
     end
 end)
 
@@ -146,6 +107,10 @@ end)
 TicketStatusFrame:ClearAllPoints()
 TicketStatusFrame:SetPoint("BOTTOMRIGHT", UIParent, -25, -33)
 TicketStatusFrameButton:HookScript("OnShow", function(self)
+    if not self.SetBackdrop then
+        Mixin(self, BackdropTemplateMixin)
+    end
+
     self:SetBackdrop({
         bgFile = "Interface\\Buttons\\WHITE8x8",
         insets = {
@@ -160,7 +125,7 @@ TicketStatusFrameButton:HookScript("OnShow", function(self)
 end)
 
 local function GetZoneColor()
-    local zoneType = GetZonePVPInfo()
+    local zoneType = C_PvP.GetZonePVPInfo()
     if zoneType == "sanctuary" then
         return 0.4, 0.8, 0.94
     elseif zoneType == "arena" then

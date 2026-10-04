@@ -10,7 +10,7 @@ local tinsert = tinsert
 local playerName, _ = UnitName("player")
 local playerRealm = GetRealmName()
 
-local NUM_ADDONS_TO_DISPLAY = cfg.tab.numberOfAddons or GetNumAddOns()
+local NUM_ADDONS_TO_DISPLAY = cfg.tab.numberOfAddons or C_AddOns.GetNumAddOns()
 local activezone = CreateColor(0.3, 1.0, 0.0, 1)
 local inactivezone = CreateColor(0.75, 0.75, 0.75, 1)
 local guildIcon = CreateTextureMarkup("Interface\\GossipFrame\\TabardGossipIcon", 16, 16, 16, 16, 0, 1, 0, 1, 0, 0)
@@ -217,6 +217,10 @@ function nMinimap_UpdateGuildButton(entry)
 
     local name, _, _, level, _, zone, _, _, connected, status, class, _ = GetGuildRosterInfo(entry.id)
 
+    if issecretvalue(name) then
+        return height
+    end
+
     if connected then
         zone = zone or UNKNOWN
 
@@ -303,6 +307,11 @@ function nMinimapTab_Guild_UpdateScrollFrame()
         totalButtonHeight = totalButtonHeight + scrollFrame.entryHeight
     end
 
+        -- GetGuildRosterInfo is not used by the default UI anymore and may not exist.
+    if not GetGuildRosterInfo then
+        return
+    end
+
     for i = 1, GetNumGuildMembers() do
         local name, _, _, _, _, _, _, _, connected = GetGuildRosterInfo(i)
         if connected and name ~= playerName.."-"..playerRealm then
@@ -343,10 +352,10 @@ function nMinimapTab_Guild_ShowTooltip(self)
     GameTooltip:AddLine(GetGuildInfo("player"))
     GameTooltip:AddLine(" ")
     GameTooltip:AddLine(GUILD_MOTD)
-    GameTooltip:AddLine(GetGuildRosterMOTD() or "-", 1, 1, 1, true)
+    GameTooltip:AddLine(C_GuildInfo.GetMOTD() or "-", 1, 1, 1, true)
     GameTooltip:AddLine(" ")
 
-    if onlineMembers > 1 then
+    if onlineMembers > 1 and GetGuildRosterInfo then
         GameTooltip_InsertFrame(GameTooltip, GuildScroll)
     end
 
@@ -595,7 +604,7 @@ local function AddonMem()
 
     UpdateAddOnMemoryUsage()
 
-    for i=1, GetNumAddOns(), 1 do
+    for i=1, C_AddOns.GetNumAddOns(), 1 do
         local mem = GetAddOnMemoryUsage(i)
         totalMem = totalMem + mem
         for j = 1, NUM_ADDONS_TO_DISPLAY, 1 do
@@ -603,7 +612,7 @@ local function AddonMem()
                 for k = NUM_ADDONS_TO_DISPLAY, 1, -1 do
                     if k == j then
                         AddonTable[k].value = mem
-                        AddonTable[k].name = GetAddOnInfo(i)
+                        AddonTable[k].name = C_AddOns.GetAddOnInfo(i)
                         break
                     elseif k ~= 1 then
                         AddonTable[k].value = AddonTable[k-1].value

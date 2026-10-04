@@ -2,7 +2,6 @@ local _, nCore = ...
 
 function nCore:AltBuy()
     local L = nCore.L
-    local select = select
 
     local NEW_ITEM_VENDOR_STACK_BUY = ITEM_VENDOR_STACK_BUY
     ITEM_VENDOR_STACK_BUY = "|cffa9ff00"..NEW_ITEM_VENDOR_STACK_BUY.."|r" -- luacheck: ignore
@@ -12,7 +11,7 @@ function nCore:AltBuy()
     hooksecurefunc("MerchantItemButton_OnModifiedClick", function(self, ...)
         if not nCoreDB.AltBuy then return end
         if IsAltKeyDown() then
-            local numAvailable = select(5, GetMerchantItemInfo(self:GetID()))
+            local numAvailable = C_MerchantFrame.GetItemInfo(self:GetID()).numAvailable
 
             -- -1 means an item has unlimited supply.
             if numAvailable ~= -1 then
@@ -26,15 +25,17 @@ function nCore:AltBuy()
         -- Add a hint to the tooltip.
 
     local function IsMerchantButtonOver()
-        return GetMouseFocus():GetName() and GetMouseFocus():GetName():find("MerchantItem%d")
+        local focus = GetMouseFoci()[1]
+        local name = focus and focus.GetName and focus:GetName()
+        return name and name:find("MerchantItem%d")
     end
 
-    GameTooltip:HookScript("OnTooltipSetItem", function(self)
-        if not nCoreDB.AltBuy then return end
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self)
+        if self ~= GameTooltip or not nCoreDB.AltBuy then return end
         if MerchantFrame:IsShown() and IsMerchantButtonOver() then
             for i = 2, GameTooltip:NumLines() do
                 local line = _G["GameTooltipTextLeft"..i]:GetText() or ""
-                if line:find("<[sS]hift") then
+                if not issecretvalue(line) and line:find("<[sS]hift") then
                     GameTooltip:AddLine("|cff00ffcc"..L.AltBuyVendorToolip.."|r")
                 end
             end

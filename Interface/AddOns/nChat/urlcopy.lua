@@ -1,14 +1,22 @@
+local _, nChat = ...
+
 local find = string.find
 local gsub = string.gsub
+local sub = string.sub
+
+    -- URLs are shown as addon links, which the default UI passes on to the
+    -- "SetItemRef" EventRegistry event.
+
+local LINK_PREFIX = "addon:nChat:url:"
 
 local found = false
 
 local function ColorURL(text, url)
     found = true
-    return " |H".."url"..":"..tostring(url).."|h".."|cff0099FF["..tostring(url).."]|h|r "
+    return " |H"..LINK_PREFIX..tostring(url).."|h".."|cff0099FF["..tostring(url).."]|h|r "
 end
 
-local function ScanURL(frame, text, ...)
+local function ScanURL(text)
     found = false
 
     if find(text:upper(), "%pTINTERFACE%p+") then
@@ -40,35 +48,21 @@ local function ScanURL(frame, text, ...)
         text = gsub(text, "(%s?)([_%w-%.~-]+@[_%w-]+%.[_%w-%.]+)(%s?)", ColorURL)
     end
 
-    frame.add(frame, text,...)
+    return text
 end
 
-local function EnableURLCopy()
-    for _, v in pairs(CHAT_FRAMES) do
-        local chat = _G[v]
-        if chat and not chat.hasURLCopy and chat ~= "ChatFrame2" then
-            chat.add = chat.AddMessage
-            chat.AddMessage = ScanURL
-            chat.hasURLCopy = true
-        end
+table.insert(nChat.MessageFilters, ScanURL)
+
+EventRegistry:RegisterCallback("SetItemRef", function(_, link, text, button, chatFrame)
+    if sub(link, 1, #LINK_PREFIX) ~= LINK_PREFIX then
+        return
     end
-end
-hooksecurefunc("FCF_OpenTemporaryWindow", EnableURLCopy)
 
-local _ChatFrame_OnHyperlinkShow = ChatFrame_OnHyperlinkShow
-function ChatFrame_OnHyperlinkShow(self, link, text, button) -- luacheck: ignore
-    local type, value = link:match("(%a+):(.+)")
-    if type == "url" then
-        local editBox = _G[self:GetName().."EditBox"]
-        if editBox then
-            editBox:Show()
-            editBox:SetText(value)
-            editBox:SetFocus()
-            editBox:HighlightText()
-        end
-    else
-        _ChatFrame_OnHyperlinkShow(self, link, text, button)
+    local value = sub(link, #LINK_PREFIX + 1)
+    local editBox = ChatFrameUtil.ChooseBoxForSend(chatFrame)
+    if editBox then
+        ChatFrameUtil.ActivateChat(editBox)
+        editBox:SetText(value)
+        editBox:HighlightText()
     end
-end
-
-EnableURLCopy()
+end, nChat)

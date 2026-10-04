@@ -122,10 +122,19 @@ function ns.CreateCastbars(self, unit)
             end
         end
 
-            -- Interrupt indicator
+            -- Colors and interrupt indicator
 
-        self.Castbar.PostCastStart = function(self, unit)
-            ns.UpdateCastbarColor(self)
+        ns.SetupCastbarCallbacks(self.Castbar)
+
+        local ignoreList = {}
+        if unit == "pet" and ns.Config.units.pet.castbar.ignoreSpells then
+            for _, spellID in pairs(ns.Config.units.pet.castbar.ignoreList) do
+                ignoreList[spellID] = true
+            end
+        end
+
+        self.Castbar.PostCastStart = function(self, unit, spellID, notInterruptible)
+            ns.UpdateCastbarColor(self, unit, spellID, notInterruptible)
 
             if unit == "player" then
                 if self.Latency then
@@ -140,63 +149,46 @@ function ns.CreateCastbars(self, unit)
 
                 -- Hide some special spells like waterbold or firebold (pets) because it gets really spammy
 
-            if ns.Config.units.pet.castbar.ignoreSpells then
-                if unit == "pet" then
+            if unit == "pet" then
+                if not issecretvalue(spellID) and spellID and ignoreList[spellID] then
+                    self:SetAlpha(0)
+                else
                     self:SetAlpha(1)
-
-                    for _, spellID in pairs(ns.Config.units.pet.castbar.ignoreList) do
-                        if UnitCastingInfo("pet") == GetSpellInfo(spellID) then
-                            self:SetAlpha(0)
-                        end
-                    end
                 end
             end
         end
-
-        self.Castbar.PostCastFailed = function(self, unit)
-            self:SetStatusBarColor(unpack(self.failedCastColor))
-            self.Background:SetVertexColor(self.failedCastColor[1]*0.3, self.failedCastColor[2]*0.3, self.failedCastColor[3]*0.3)
-        end
-
-        self.Castbar.PostCastInterruptible = ns.UpdateCastbarColor
-
-        self.Castbar.CustomDelayText = ns.CustomDelayText
-        self.Castbar.CustomTimeText = ns.CustomTimeText
     end
 end
 
-    -- Mirror timers
+    -- Mirror timers (breath, fatigue). The container is positioned with Edit Mode.
 
-for i = 1, MIRRORTIMER_NUMTIMERS do
-    local bar = _G["MirrorTimer"..i]
-    bar:SetParent(UIParent)
-    bar:SetScale(1.132)
-    bar:SetSize(220, 18)
+for _, timer in ipairs(MirrorTimerContainer.mirrorTimers) do
+    timer:SetScale(1.132)
+    timer:SetSize(220, 18)
 
-    bar:CreateBeautyBorder(11)
-    bar:SetBeautyBorderPadding(3)
+    timer:CreateBeautyBorder(11)
+    timer:SetBeautyBorderPadding(3)
 
-    if i > 1 then
-        local p1, p2, p3, p4, p5 = bar:GetPoint()
-        bar:SetPoint(p1, p2, p3, p4, p5 - 15)
+    local statusbar = timer.StatusBar
+    statusbar:SetStatusBarTexture(ns.Config.media.statusbar)
+    statusbar:ClearAllPoints()
+    statusbar:SetAllPoints(timer)
+
+    if not timer.Background then
+        timer.Background = timer:CreateTexture(nil, "BACKGROUND")
+        timer.Background:SetTexture("Interface\\Buttons\\WHITE8x8")
+        timer.Background:SetVertexColor(0, 0, 0, 0.5)
+        timer.Background:SetAllPoints(timer)
     end
 
-    local statusbar = _G["MirrorTimer"..i.."StatusBar"]
-    statusbar:SetStatusBarTexture(ns.Config.media.statusbar)
-    statusbar:SetAllPoints(bar)
+    for _, region in pairs({timer.TextBorder, timer.Border}) do
+        region:SetAlpha(0)
+    end
 
-    local backdrop = select(1, bar:GetRegions())
-    backdrop:SetTexture("Interface\\Buttons\\WHITE8x8")
-    backdrop:SetVertexColor(0, 0, 0, 0.5)
-    backdrop:SetAllPoints(bar)
-
-    local border = _G["MirrorTimer"..i.."Border"]
-    border:Hide()
-
-    local text = _G["MirrorTimer"..i.."Text"]
+    local text = timer.Text
     text:SetFont(ns.Config.font.normal, ns.Config.font.normalSize)
     text:ClearAllPoints()
-    text:SetPoint("CENTER", bar)
+    text:SetPoint("CENTER", timer)
 end
 
     -- Battleground timer
@@ -204,8 +196,8 @@ end
 local f = CreateFrame("Frame")
 f:RegisterEvent("START_TIMER")
 f:SetScript("OnEvent", function(self, event)
-    for _, b in pairs(TimerTracker.timerList) do
-        if not b["bar"].beautyBorder then
+    for _, b in pairs(TimerTracker.timerList or {}) do
+        if b.bar and not b.bar.beautyBorder then
             local bar = b["bar"]
             bar:SetScale(1.132)
             bar:SetSize(220, 18)

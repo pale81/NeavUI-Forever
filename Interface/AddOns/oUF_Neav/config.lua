@@ -289,44 +289,5 @@ ns.Config = {
                 failedCastColor = FAILED_CAST_COLOR,
             },
         },
-
-        ["arena"] = {
-            show = true,
-            scale = 1,
-
-            auraSize = 32,
-            numBuffs = 8,
-            numDebuffs = 8,
-
-            debuffsOnly = true,
-            onlyShowPlayer = false,
-
-            mouseoverText = true,
-            healthTag = "$cur/$max",
-            healthTagFull = "$cur",
-            powerTag = "$cur/$max",
-            powerTagFull = "$cur",
-            powerTagNoMana = "$cur",
-
-            position = {"TOPRIGHT", UIParent, "TOPRIGHT", -95, -300},
-
-            castbar = {
-                show = true,
-
-                width = 160,
-                height = 22,
-                scale = 0.93,
-
-                castColor = START_CAST_COLOR,
-                channeledColor = START_CHANNEL_COLOR,
-                nonInterruptibleColor = NONINTERRUPTIBLE_COLOR,
-                failedCastColor = FAILED_CAST_COLOR,
-            },
-
-            filterBuffs = false,
-            buffList = { -- A whitelist for buffs to display on arena frames
-                ["Power Word: Shield"] = true,
-            },
-        },
     },
 }

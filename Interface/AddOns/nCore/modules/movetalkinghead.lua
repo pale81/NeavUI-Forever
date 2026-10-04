@@ -18,27 +18,7 @@ function nCore:MoveTalkingHeads()
         end
     end)
 
-    local function MoveTalkingHeads()
-        hooksecurefunc(TalkingHeadFrame, "Show", function(self)
-            self:SetMovable(true)
-            self:SetUserPlaced(true)
-            self:ClearAllPoints()
-            self:SetPoint("BOTTOMLEFT", AlertFrameAnchor)
-        end)
-    end
-
-    if IsAddOnLoaded("Blizzard_TalkingHeadUI") then
-        MoveTalkingHeads()
-    else
-        local waitFrame = CreateFrame("FRAME")
-        waitFrame:RegisterEvent("ADDON_LOADED")
-        waitFrame:SetScript("OnEvent", function(self, event, ...)
-            local name = ...
-            if name == "Blizzard_TalkingHeadUI" then
-                MoveTalkingHeads()
-            end
-        end)
-    end
+        -- The talking head frame is positioned with Edit Mode.
 
     SlashCmdList["AlertFrameAnchor_AnchorToggle"] = function()
         if InCombatLockdown() then

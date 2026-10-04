@@ -30,19 +30,17 @@ function nCore:Durability()
     local charString = CharacterLevelText
     charString:SetFont(STANDARD_TEXT_FONT, 14)
 
-    local tab = CreateFrame("Button", "PaperDollFrameDurabilityTab", PaperDollSidebarTab1, "CharacterFrameTabButtonTemplate")
+    local tab = CreateFrame("Frame", "PaperDollFrameDurabilityTab", PaperDollFrame)
+    tab:SetSize(120, 20)
     tab:SetPoint("TOP", PaperDollFrame, "BOTTOM", 170, 2)
-    tab:Disable()
-    tab:EnableMouse(false)
-    tab:SetFrameStrata("BACKGROUND")
+
+    tab.Text = tab:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    tab.Text:SetPoint("CENTER")
 
     tab:RegisterEvent("PLAYER_ENTERING_WORLD")
     tab:RegisterEvent("UPDATE_INVENTORY_DURABILITY")
     tab:RegisterEvent("MERCHANT_SHOW")
 
-    _G[tab:GetName().."LeftDisabled"]:SetTexture(nil)
-    _G[tab:GetName().."RightDisabled"]:SetTexture(nil)
-    _G[tab:GetName().."MiddleDisabled"]:SetTexture(nil)
 
     local function ColorGradient(perc, ...)
         if perc >= 1 then
@@ -100,11 +98,7 @@ function nCore:Durability()
                 r, g, b = 0, 1, 0
             end
 
-            tab:SetText(format("|cff%02x%02x%02x%d%%|r", r*255, g*255, b*255, (overAll/total)*100).." "..DURABILITY)
+            tab.Text:SetText(format("|cff%02x%02x%02x%d%%|r", r*255, g*255, b*255, (overAll/total)*100).." "..DURABILITY)
         end
-    end)
-
-    tab:SetScript("OnShow", function(self)
-        PanelTemplates_TabResize(self, 0)
     end)
 end

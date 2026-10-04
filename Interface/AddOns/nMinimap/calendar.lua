@@ -1,24 +1,39 @@
 local select = select
 
-if not IsAddOnLoaded("Blizzard_TimeManager") then
-    LoadAddOn("Blizzard_TimeManager")
+if not C_AddOns.IsAddOnLoaded("Blizzard_TimeManager") then
+    C_AddOns.LoadAddOn("Blizzard_TimeManager")
 end
 
-for i = 1, select("#", GameTimeFrame:GetRegions()) do
-    local texture = select(i, GameTimeFrame:GetRegions())
-    if texture and texture:GetObjectType() == "Texture" then
-        texture:SetTexture(nil)
+    -- The default calendar button shows the day with atlas textures, they are replaced by text.
+
+local function SetDateText()
+    for _, texture in pairs({
+        GameTimeFrame:GetNormalTexture(),
+        GameTimeFrame:GetPushedTexture(),
+        GameTimeFrame:GetHighlightTexture(),
+    }) do
+        texture:SetAlpha(0)
     end
+
+    GameTimeFrame:SetText(C_DateAndTime.GetCurrentCalendarTime().monthDay)
+
+    local fontString = GameTimeFrame:GetFontString()
+    fontString:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
+    fontString:SetShadowOffset(0, 0)
+    fontString:ClearAllPoints()
+    fontString:SetPoint("TOPRIGHT", GameTimeFrame)
 end
 
+hooksecurefunc("GameTimeFrame_SetDate", SetDateText)
+SetDateText()
+
+GameTimeFrame:SetParent(Minimap)
 GameTimeFrame:SetSize(14, 14)
 GameTimeFrame:SetHitRectInsets(0, 0, 0, 0)
 GameTimeFrame:ClearAllPoints()
 GameTimeFrame:SetPoint("TOPRIGHT", Minimap, -3.5, -3.5)
 
-GameTimeFrame:GetFontString():SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")
-GameTimeFrame:GetFontString():SetShadowOffset(0, 0)
-GameTimeFrame:GetFontString():SetPoint("TOPRIGHT", GameTimeFrame)
+local classColor = RAID_CLASS_COLORS[select(2, UnitClass("player"))]
 
 for _, texture in pairs({
     GameTimeCalendarEventAlarmTexture,
@@ -27,8 +42,6 @@ for _, texture in pairs({
     TimeManagerAlarmFiredTexture,
 }) do
     texture:SetTexture(nil)
-
-    local classColor = RAID_CLASS_COLORS[select(2, UnitClass("player"))]
 
     if texture:IsShown() then
         GameTimeFrame:GetFontString():SetTextColor(1, 0, 1)

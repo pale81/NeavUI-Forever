@@ -8,8 +8,8 @@ function nCore_OnLoad(self)
         _G["ADDON_DEMAND_LOADED"] = "On Demand"
     end
 
-    if MerchantFrame then
-        _G["MerchantRepairText"]:SetText("")
+    if MerchantRepairText then
+        MerchantRepairText:SetText("")
     end
 end
 
@@ -31,7 +31,6 @@ function nCore_OnEvent(self, event, ...)
             nCore:MapCoords()
             nCore:MoveTalkingHeads()
             nCore:QuestTracker()
-            nCore:ObjectiveTracker()
             nCore:Skins()
             nCore:SpellID()
             nCore:VignetteAlert()

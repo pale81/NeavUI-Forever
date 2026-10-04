@@ -1,4 +1,3 @@
-
 local _, ns = ...
 
 local len = string.len
@@ -8,6 +7,9 @@ local floor = math.floor
 
 local tags = oUF.Tags.Methods
 local events = oUF.Tags.Events
+
+    -- Tag values can be secret in restricted content. Secret values can't be compared or
+    -- used in arithmetic, so they are only passed to secret-safe API (e.g. string.format).
 
 local function FormatValue(value)
     if value >= 1e6 then
@@ -21,7 +23,10 @@ end
 
 tags["neav:AdditionalPower"] = function(unit)
     local min, max = UnitPower(unit, Enum.PowerType.Mana), UnitPowerMax(unit, Enum.PowerType.Mana)
-    if min == max then
+
+    if issecretvalue(min) or issecretvalue(max) then
+        return format("%s/%s", AbbreviateNumbers(min), AbbreviateNumbers(max))
+    elseif min == max then
         return FormatValue(min)
     else
         return FormatValue(min).."/"..FormatValue(max)
@@ -61,37 +66,55 @@ tags["neav:level"] = function(unit)
 end
 events["neav:level"] = "UNIT_LEVEL PLAYER_LEVEL_UP UNIT_CLASSIFICATION_CHANGED"
 
-tags["neav:name"] = function(unit)
-    local r, g, b
-    local name, _ = UnitName(unit) or UNKNOWN
-    local _, class = UnitClass(unit)
+    -- Name color. Used as "[neav:namecolor][neav:name]|r", because a (possibly secret)
+    -- name can't be concatenated with the color code.
 
+tags["neav:namecolor"] = function(unit)
     if unit == "player" or unit:match("party") then
-        if class then
-            local color = oUF.colors.class[class]
-            r, g, b = color[1], color[2], color[3]
+        local _, class = UnitClass(unit)
+
+        if issecretvalue(class) then
+            return C_ClassColor.GetClassColor(class):GenerateHexColorMarkup()
+        elseif class and oUF.colors.class[class] then
+            return oUF.colors.class[class]:GenerateHexColorMarkup()
         else
-            r, g, b = 0, 1, 0
+            return "|cff00ff00"
         end
     elseif unit == "targettarget" or unit == "focustarget" or unit:match("arena(%d)target") then
-        r, g, b = GameTooltip_UnitColor(unit)
+        local r, g, b = UnitSelectionColor(unit)
+        return format("|cff%02x%02x%02x", r*255, g*255, b*255)
     else
-        r, g, b = 1, 1, 1
+        return "|cffffffff"
+    end
+end
+events["neav:namecolor"] = "UNIT_NAME_UPDATE UNIT_FACTION"
+
+tags["neav:name"] = function(unit)
+    local name = UnitName(unit)
+
+    if issecretvalue(name) then
+        return name
     end
 
-    name = (len(name) > 15) and gsub(name, "%s?(.[\128-\191]*)%S+%s", "%1. ") or name
+    name = name or UNKNOWN
 
-    return format("|cff%02x%02x%02x%s|r", r*255, g*255, b*255, name)
+    return (len(name) > 15) and gsub(name, "%s?(.[\128-\191]*)%S+%s", "%1. ") or name
 end
 events["neav:name"] = "UNIT_NAME_UPDATE"
 
 local timer = {}
 
-
 tags["neav:afk"] = function(unit)
-    local name, _ = UnitName(unit) or UNKNOWN
+    local name = UnitName(unit)
+    local isAFK = UnitIsAFK(unit)
 
-    if UnitIsAFK(unit) then
+    if issecretvalue(name) or issecretvalue(isAFK) then
+        return
+    end
+
+    name = name or UNKNOWN
+
+    if isAFK then
         if not timer[name] then
             timer[name] = GetTime()
         end

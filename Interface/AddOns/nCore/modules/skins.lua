@@ -9,14 +9,14 @@ function nCore:Skins()
     f:RegisterEvent("PLAYER_ENTERING_WORLD")
 
     f:SetScript("OnEvent", function(self)
-        if IsAddOnLoaded("Omen") then
+        if C_AddOns.IsAddOnLoaded("Omen") then
             if not OmenBarList.beautyBorder then
                 OmenBarList:CreateBeautyBorder(11)
                 OmenBarList:SetBeautyBorderPadding(1)
             end
         end
 
-        if IsAddOnLoaded("DBM-Core") then
+        if C_AddOns.IsAddOnLoaded("DBM-Core") then
             hooksecurefunc(DBT, "CreateBar", function(self)
                 for bar in self:GetBarIterator() do
                     local frame = bar.frame
@@ -55,7 +55,7 @@ function nCore:Skins()
             end)
         end
 
-        if IsAddOnLoaded("TinyDPS") then
+        if C_AddOns.IsAddOnLoaded("TinyDPS") then
             if not tdpsFrame.beautyBorder then
                 tdpsFrame:CreateBeautyBorder(11)
                 tdpsFrame:SetBeautyBorderPadding(2)
@@ -67,7 +67,7 @@ function nCore:Skins()
             end
         end
 
-        if IsAddOnLoaded("Recount") then
+        if C_AddOns.IsAddOnLoaded("Recount") then
             if not Recount.MainWindow.beautyBorder then
                 Recount.MainWindow:CreateBeautyBorder(12)
                 Recount.MainWindow:SetBeautyBorderPadding(2, -10, 2, -10, 2, 2, 2, 2)
@@ -79,7 +79,7 @@ function nCore:Skins()
             end
         end
 
-        if IsAddOnLoaded("Skada") then
+        if C_AddOns.IsAddOnLoaded("Skada") then
             local OriginalSkadaFunc = Skada.PLAYER_ENTERING_WORLD
             function Skada:PLAYER_ENTERING_WORLD()
                 OriginalSkadaFunc(self)
@@ -98,7 +98,7 @@ function nCore:Skins()
             end
         end
 
-        if IsAddOnLoaded("Numeration") then
+        if C_AddOns.IsAddOnLoaded("Numeration") then
             if not NumerationFrame.beautyBorder then
                 NumerationFrame:CreateBeautyBorder(11)
                 NumerationFrame:SetBeautyBorderPadding(3)

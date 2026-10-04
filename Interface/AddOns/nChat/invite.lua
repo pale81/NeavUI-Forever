@@ -16,9 +16,13 @@ StaticPopupDialogs["NCHAT_ALTCLICK"] = {
 }
 
 hooksecurefunc("SetItemRef", function(link, text, button, chatFrame)
+    if issecretvalue(link) then
+        return
+    end
+
     local linkType = sub(link, 1, 6)
     if IsAltKeyDown() and linkType == "player" then
-        for i = 1, NUM_CHAT_WINDOWS do
+        for i = 1, Constants.ChatFrameConstants.MaxChatWindows do
             local editBox = _G['ChatFrame'..i..'EditBox']
             editBox:Hide()
         end

@@ -2,7 +2,7 @@
 local _, nTooltip = ...
 local cfg = nTooltip.Config
 
-local beautyBorderLoaded = IsAddOnLoaded("!Beautycase")
+local beautyBorderLoaded = C_AddOns.IsAddOnLoaded("!Beautycase")
 
 local select = select
 local format = string.format
@@ -64,6 +64,12 @@ local function ApplyTooltipStyle(self)
         borderSize = 16
     end
 
+        -- The default NineSlice border is replaced by our own background and border.
+
+    if beautyBorderLoaded and self.NineSlice then
+        self.NineSlice:SetAlpha(0)
+    end
+
     if not self.Background then
         self.Background = self:CreateTexture("NeavBackground", "BORDER")
         self.Background:SetColorTexture(0.0, 0.0, 0.0, 0.80)
@@ -72,11 +78,8 @@ local function ApplyTooltipStyle(self)
     end
 
     if beautyBorderLoaded then
-        if self.HasBackdropInfo then
-            self:SetBackdrop({
-                bgFile = nil,
-                edgeFile = nil,
-            })
+        if self.HasBackdropInfo and self:HasBackdropInfo() then
+            self:ClearBackdrop()
         end
 
         if not self:HasBeautyBorder() then
@@ -94,25 +97,14 @@ for _, tooltip in pairs({
     ItemRefShoppingTooltip2,
     ShoppingTooltip1,
     ShoppingTooltip2,
-    DropDownList1MenuBackdrop,
-    DropDownList2MenuBackdrop,
-    ConsolidatedBuffsTooltip,
     AutoCompleteBox,
-    ChatMenu,
-    EmoteMenu,
-    LanguageMenu,
-    VoiceMacroMenu,
     FriendsTooltip,
     FloatingGarrisonFollowerTooltip,
     FloatingBattlePetTooltip,
     FloatingPetBattleAbilityTooltip,
-    ReputationParagonTooltip,
     LibDBIconTooltip,
-    SmallTextTooltip,
     LibItemUpdateInfoTooltip,
-    QuestScrollFrame.StoryTooltip,
-    QuestScrollFrame.WarCampaignTooltip,
-    NamePlateTooltip,
+    QuestScrollFrame and QuestScrollFrame.StoryTooltip,
 }) do
     ApplyTooltipStyle(tooltip)
 end
@@ -122,27 +114,30 @@ hooksecurefunc("SharedTooltip_SetBackdropStyle", ApplyTooltipStyle)
     -- Itemquaility border, we use our beautycase functions
 
 if cfg.itemqualityBorderColor then
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self)
+        if not self.beautyBorder or self:IsForbidden() then
+            return
+        end
+
+        local _, item = self:GetItem()
+        if not issecretvalue(item) and item then
+            local quality = C_Item.GetItemQualityByID(item)
+            if quality then
+                local r, g, b = C_Item.GetItemQualityColor(quality)
+                self:SetBeautyBorderTexture("white")
+                self:SetBeautyBorderColor(r, g, b)
+            end
+        end
+    end)
+
     for _, tooltip in pairs({
         GameTooltip,
         ItemRefTooltip,
 
         ShoppingTooltip1,
         ShoppingTooltip2,
-        ShoppingTooltip3,
     }) do
         if tooltip.beautyBorder then
-            tooltip:HookScript("OnTooltipSetItem", function(self)
-                local _, item = self:GetItem()
-                if item then
-                    local quality = select(3, GetItemInfo(item))
-                    if quality then
-                        local r, g, b = GetItemQualityColor(quality)
-                        self:SetBeautyBorderTexture("white")
-                        self:SetBeautyBorderColor(r, g, b)
-                    end
-                end
-            end)
-
             tooltip:HookScript("OnTooltipCleared", function(self)
                 self:SetBeautyBorderTexture("default")
                 self:SetBeautyBorderColor(1, 1, 1)
@@ -237,6 +232,12 @@ end
 
 local function GetUnitRaidIcon(unit)
     local index = GetRaidTargetIndex(unit)
+
+        -- Raid target indices can be secret.
+    if issecretvalue(index) then
+        return ""
+    end
+
     local icon = ICON_LIST[index] or ""
 
     if index then
@@ -272,6 +273,11 @@ end
 
 local function AddMouseoverTarget(self, unit)
     local unitTargetName = UnitName(unit.."target")
+
+    if issecretvalue(unitTargetName) or issecretvalue(UnitClass(unit.."target")) then
+        return
+    end
+
     local unitTargetClassColor = RAID_CLASS_COLORS[select(2, UnitClass(unit.."target"))] or { r = 1, g = 0, b = 1 }
     local unitTargetReactionColor = {
         r = select(1, GameTooltip_UnitColor(unit.."target")),
@@ -298,11 +304,64 @@ local inspectRefresh = true
 local inspectRequestSent = false
 local blockInspectRequests = false
 
-GameTooltip:HookScript("OnTooltipSetUnit", function(self, ...)
+local function GetLineText(index)
+    local line = _G["GameTooltipTextLeft"..index]
+    local text = line and line:GetText()
+
+    if not issecretvalue(text) and text then
+        return text
+    end
+end
+
+    -- Unit names, levels and other identity data can be secret in restricted content.
+    -- The tooltip is only modified when that data is accessible.
+
+local function AnySecret(...)
+    for i = 1, select("#", ...) do
+        if issecretvalue((select(i, ...))) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function IsUnitAccessible(unit)
+    if issecretvalue(unit) or not unit then
+        return false
+    end
+
+    return not AnySecret(
+        UnitName(unit),
+        UnitGUID(unit),
+        UnitClass(unit),
+        UnitRace(unit),
+        UnitPVPName(unit),
+        UnitIsPVP(unit),
+        UnitCreatureType(unit),
+        UnitGroupRolesAssigned(unit)
+    )
+end
+
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self)
+    if self ~= GameTooltip or self:IsForbidden() then
+        return
+    end
+
     local _, unit = self:GetUnit()
 
     if cfg.hideInCombat and InCombatLockdown() then
         self:Hide()
+        return
+    end
+
+        -- Custom healthbar coloring
+
+    if (cfg.healthbar.reactionColoring or cfg.healthbar.customColor.apply) and not issecretvalue(unit) and unit then
+        SetHealthBarColor(unit)
+    end
+
+    if not IsUnitAccessible(unit) then
         return
     end
 
@@ -344,16 +403,18 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self, ...)
 
             -- Color guildnames
 
-        if GetGuildInfo(unit) then
-            if GetGuildInfo(unit) == GetGuildInfo("player") and IsInGuild("player") then
-               GameTooltipTextLeft2:SetText("|cffFF66CC"..GameTooltipTextLeft2:GetText().."|r")
+        local guildName = GetGuildInfo(unit)
+        if not issecretvalue(guildName) and guildName and GetLineText(2) then
+            if guildName == GetGuildInfo("player") and IsInGuild() then
+               GameTooltipTextLeft2:SetText("|cffFF66CC"..GetLineText(2).."|r")
             end
         end
 
             -- Level
 
         for i = 2, GameTooltip:NumLines() do
-            if _G["GameTooltipTextLeft"..i]:GetText():find("^"..TOOLTIP_UNIT_LEVEL:gsub("%%s", ".+")) then
+            local text = GetLineText(i)
+            if text and text:find("^"..TOOLTIP_UNIT_LEVEL:gsub("%%s", ".+")) then
                 _G["GameTooltipTextLeft"..i]:SetText(GetFormattedUnitString(unit, specIcon))
             end
         end
@@ -373,21 +434,29 @@ GameTooltip:HookScript("OnTooltipSetUnit", function(self, ...)
             -- PvP Flag Prefix
 
         for i = 3, GameTooltip:NumLines() do
-            if _G["GameTooltipTextLeft"..i]:GetText():find(PVP_ENABLED) then
+            local text = GetLineText(i)
+            if text and text:find(PVP_ENABLED) and GetLineText(1) then
                 _G["GameTooltipTextLeft"..i]:SetText(nil)
-                GameTooltipTextLeft1:SetText(GetUnitPVPIcon(unit)..GameTooltipTextLeft1:GetText())
+                GameTooltipTextLeft1:SetText(GetUnitPVPIcon(unit)..GetLineText(1))
             end
         end
 
             -- Raid icon, want to see the raidicon on the left
 
-        GameTooltipTextLeft1:SetText(GetUnitRaidIcon(unit)..GameTooltipTextLeft1:GetText())
+        if GetLineText(1) then
+            GameTooltipTextLeft1:SetText(GetUnitRaidIcon(unit)..GetLineText(1))
+        end
 
             -- Away and DND
 
-        if UnitIsAFK(unit) then
+        local isAFK, isDND = UnitIsAFK(unit), UnitIsDND(unit)
+        if issecretvalue(isAFK) or issecretvalue(isDND) then
+            isAFK, isDND = false, false
+        end
+
+        if isAFK then
             self:AppendText("|cff00ff00 <"..CHAT_MSG_AFK..">|r")
-        elseif UnitIsDND(unit) then
+        elseif isDND then
             self:AppendText("|cff00ff00 <"..DEFAULT_DND_MESSAGE..">|r")
         end
 
@@ -444,15 +513,6 @@ GameTooltip:HookScript("OnTooltipCleared", function(self)
         self:SetBeautyBorderColor(1, 1, 1)
     end
 end)
-
-    -- Custom healthbar coloring
-
-if cfg.healthbar.reactionColoring or cfg.healthbar.customColor.apply then
-    GameTooltipStatusBar:HookScript("OnValueChanged", function(self)
-        local _, unit = self:GetParent():GetUnit()
-        SetHealthBarColor(unit)
-    end)
-end
 
 local function CreateAnchor()
     local anchorFrame = CreateFrame("Frame", "nTooltip_Anchor", UIParent, "BackdropTemplate")
@@ -512,14 +572,20 @@ GameTooltip:SetScript("OnEvent", function(self, event, GUID)
         inspectRequestSent = false
     end
 
-    if UnitGUID(unit) ~= GUID or not inspectRequestSent then
+    local unitGUID = UnitGUID(unit)
+    if issecretvalue(unitGUID) or unitGUID ~= GUID or not inspectRequestSent then
         if not blockInspectRequests then
             ClearInspectPlayer()
         end
         return
     end
 
-    local _, _, _, icon = GetSpecializationInfoByID(GetInspectSpecialization(unit))
+    local specID = C_SpecializationInfo.GetInspectSpecialization(unit)
+    if issecretvalue(specID) then
+        return
+    end
+
+    local _, _, _, icon = GetSpecializationInfoForSpecID(specID)
     local now = GetTime()
 
     local iconMarkup = CreateTextureMarkup(icon, 64,64, 12,12, 0.10,.90,0.10,0.90, 0,0)
@@ -559,7 +625,7 @@ end)
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
 f:SetScript("OnEvent", function(self, event)
-    if IsAddOnLoaded("Blizzard_InspectUI") then
+    if C_AddOns.IsAddOnLoaded("Blizzard_InspectUI") then
         hooksecurefunc("InspectFrame_Show", function(unit)
             blockInspectRequests = true
         end)

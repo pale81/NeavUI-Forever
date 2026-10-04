@@ -1,10 +1,17 @@
-
 local _, ns = ...
 local L = ns.L
 
-local Options = CreateFrame("Frame", "nRaidOptions", InterfaceOptionsFramePanelContainer)
+local Options = CreateFrame("Frame", "nRaidOptions")
 Options.name = "oUF_|cffCC3333N|r|cffE53300e|r|cffFF4D00a|r|cffFF6633v|rRaid"
-Options.okay = function(self)
+
+    -- The settings panel calls OnCommit, OnDefault and OnRefresh on canvas frames.
+    -- The controls are created when the panel is shown for the first time.
+
+Options.OnCommit = function(self)
+    if not self.controls then
+        return
+    end
+
     for _, control in pairs(self.controls) do
         nRaidDB[control.var] = control:GetValue()
     end
@@ -15,26 +22,29 @@ Options.okay = function(self)
         end
     end
 end
-Options.cancel = function(self)
-    for _, control in pairs(self.controls) do
-        if control.oldValue and control.oldValue ~= control:GetValue() then
-            control:SetControl()
-        end
+Options.OnDefault = function(self)
+    if not self.controls then
+        return
     end
-end
-Options.default = function(self)
+
     for _, control in pairs(self.controls) do
         nRaidDB[control.var] = ns.GetDefaultValue(control.var)
     end
     ReloadUI()
 end
-Options.refresh = function(self)
+Options.OnRefresh = function(self)
+    if not self.controls then
+        return
+    end
+
     for _, control in pairs(self.controls) do
         control:SetControl()
         control.oldValue = control:GetValue()
     end
 end
-InterfaceOptions_AddCategory(Options)
+
+local category = Settings.RegisterCanvasLayoutCategory(Options, Options.name)
+Settings.RegisterAddOnCategory(category)
 
 Options:Hide()
 Options:SetScript("OnShow", function()
@@ -127,10 +137,11 @@ Options:SetScript("OnShow", function()
             var = "powerBars",
             needsRestart = true,
             func = function(self)
+                local manaPowerBarsOnly = _G["ManaPowerBarsOnly"]
                 if not self:GetChecked() then
-                    ManaPowerBarsOnly:Disable()
+                    manaPowerBarsOnly:Disable()
                 else
-                    ManaPowerBarsOnly:Enable()
+                    manaPowerBarsOnly:Enable()
                 end
             end,
         },
