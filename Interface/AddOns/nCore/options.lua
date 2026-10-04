@@ -141,6 +141,15 @@ Options:SetScript("OnShow", function()
         },
         {
             type = "CheckBox",
+            name = "ItemBorders",
+            parent = Options,
+            label = L.ItemBorders,
+            tooltip = L.ItemBordersTooltip,
+            var = "ItemBorders",
+            needsRestart = true,
+        },
+        {
+            type = "CheckBox",
             name = "MapCoords",
             parent = Options,
             label = L.MapCoords,
