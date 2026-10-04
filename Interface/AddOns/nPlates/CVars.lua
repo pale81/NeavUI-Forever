@@ -57,6 +57,43 @@ function nPlates:UpdateCVar(cvar, value)
     SetCVar(cvar, value)
 end
 
+    -- Enemy nameplates only in combat. The nameplate cvars can't be changed during
+    -- combat lockdown, PLAYER_REGEN_DISABLED fires right before it starts.
+
+function nPlates:UpdateCombatVisibility(enabled)
+    if ( enabled == nil ) then
+        enabled = Settings.GetValue("NPLATES_COMBAT_ONLY")
+    end
+
+    if ( InCombatLockdown() ) then
+        return
+    end
+
+    if ( enabled ) then
+        SetCVar("nameplateShowEnemies", UnitAffectingCombat("player") and 1 or 0)
+    else
+        SetCVar("nameplateShowEnemies", 1)
+    end
+end
+
+local combatWatcher = CreateFrame("Frame")
+combatWatcher:RegisterEvent("PLAYER_REGEN_DISABLED")
+combatWatcher:RegisterEvent("PLAYER_REGEN_ENABLED")
+combatWatcher:RegisterEvent("PLAYER_ENTERING_WORLD")
+combatWatcher:SetScript("OnEvent", function(_, event)
+    if ( not nPlates.categoryID or not Settings.GetValue("NPLATES_COMBAT_ONLY") or InCombatLockdown() ) then
+        return
+    end
+
+    if ( event == "PLAYER_REGEN_DISABLED" ) then
+        SetCVar("nameplateShowEnemies", 1)
+    elseif ( event == "PLAYER_REGEN_ENABLED" ) then
+        SetCVar("nameplateShowEnemies", 0)
+    else
+        nPlates:UpdateCombatVisibility(true)
+    end
+end)
+
 function nPlates:RestoreCVars()
     if ( nPlates:IsTaintable() ) then
         print(L.CVarUpdate)

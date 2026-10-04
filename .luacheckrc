@@ -51,6 +51,7 @@ globals = {
     "NeavOptions_Register",
     "NeavOptions_AddCategory",
     "NeavOptions_AddButton",
+    "NeavOptions_AddVerticalCategory",
     "SLASH_NEAVOPTIONS1",
     "SLASH_NEAVOPTIONS2",
 

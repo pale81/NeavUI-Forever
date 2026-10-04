@@ -49,9 +49,17 @@ function nPlates:RegisterSettings()
     nPlatesDB = nPlatesDB or {}
     SimpleUI.DB = nPlatesDB
 
-    local category, layout = Settings.RegisterVerticalLayoutCategory(L.AddonTitle)
-    Settings.RegisterAddOnCategory(category)
-    nPlates.categoryID = category.ID
+    local category, layout
+
+        -- NeavUI: the options are a page of the NeavUI category.
+
+    if ( NeavOptions_AddVerticalCategory ) then
+        category, layout = NeavOptions_AddVerticalCategory((L.AddonTitle:gsub("(|c%x%x%x%x%x%x%x%x)%s+", "%1")))
+    else
+        category, layout = Settings.RegisterVerticalLayoutCategory(L.AddonTitle)
+        Settings.RegisterAddOnCategory(category)
+    end
+    nPlates.categoryID = category:GetID()
 
     local options = {
         {
@@ -112,8 +120,8 @@ function nPlates:RegisterSettings()
             name = "NPLATES_IMPORTANT_CAST_COLOR",
             variable = "ImportantColor",
             default = Settings.Default.True,
-            label = "Important Color Cast",
-            tooltip = "Color used for important casts.",
+            label = L.ImportantCastColor,
+            tooltip = L.ImportantCastColorTooltip,
             varType = Settings.VarType.Boolean,
             color = "FFff007f",
             callback = function(setting, value)
@@ -338,6 +346,18 @@ function nPlates:RegisterSettings()
         {
             type = "Label",
             label = L.FrameOptionsLabel,
+        },
+        {
+            type = "CheckBox",
+            name = "NPLATES_COMBAT_ONLY",
+            variable = "CombatOnly",
+            label = L.CombatOnly,
+            tooltip = L.CombatOnlyTooltip,
+            default = Settings.Default.False,
+            varType = Settings.VarType.Boolean,
+            callback = function(control, value)
+                nPlates:UpdateCombatVisibility(value)
+            end,
         },
         {
             type = "CheckBox",
