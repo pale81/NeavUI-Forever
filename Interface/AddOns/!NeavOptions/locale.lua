@@ -163,6 +163,7 @@ local labels = {
     showOutline = "Font outline",
     textPos = "Text position",
     collectButtons = "Collect addon buttons",
+    coordinates = "Coordinates at the top",
 }
 
 local descriptions = {
@@ -184,6 +185,7 @@ local descriptions = {
     focusToggleKey = "Mouse button that sets the focus on a unit frame.",
     hideInRaid = "Hides the party frames in a raid.",
     ignoreSpells = "Hides the pet castbar for the spells in the list.",
+    coordinates = "Shows the player coordinates below the top edge of the minimap in the font of the clock and hides the coordinates of the default UI.",
     collectButtons = "Hides the minimap buttons of other addons and the addon compartment. Their entries appear in the right click menu of the minimap.",
 }
 
@@ -381,6 +383,7 @@ if GetLocale() == "deDE" then
         ["nMinimap.show"] = "Reiter anzeigen",
         showBelowMinimap = "Reiter unter der Minimap",
         collectButtons = "Addon-Symbole sammeln",
+        coordinates = "Koordinaten oben",
         -- nPower
         activeAlpha = "Transparenz im Kampf",
         inactiveAlpha = "Transparenz außerhalb des Kampfs",
@@ -454,6 +457,7 @@ if GetLocale() == "deDE" then
         buttonOutOfRange = "Färbt bei zu großer Entfernung das ganze Symbol statt nur der Tastenbelegung.",
         Normal = "Farbe des Button-Rahmens. Weiß ergibt das ursprüngliche Grau.",
         instanceDifficulty = "Der Schwierigkeitsgrad an der Minimap erscheint nur bei Mauskontakt.",
+        coordinates = "Zeigt die Spielerkoordinaten unter dem oberen Rand der Minimap in der Schrift der Uhr und blendet die Koordinaten der Standard-UI aus.",
         collectButtons = "Blendet die Minimap-Symbole anderer Addons und das Addon-Fach aus. Ihre Einträge erscheinen im Rechtsklick-Menü der Minimap.",
         activeAlpha = "Transparenz der Leiste im Kampf (0 unsichtbar, 1 voll sichtbar).",
         inactiveAlpha = "Transparenz der Leiste außerhalb des Kampfs.",
