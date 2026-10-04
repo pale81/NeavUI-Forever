@@ -59,8 +59,10 @@ local function CreateAuraButton(element, options, button)
             showWithoutDispelType = true,
             customDispelColorMap = element.__owner.colors.dispel,
         })
-    else
+    elseif options.isHarmful then
         overlay:SetVertexColor(0.5, 0.5, 0.5, 1)
+    else
+        overlay:SetVertexColor(unpack(config.media.auraBorderColor))
     end
 
     if options.showStealable then

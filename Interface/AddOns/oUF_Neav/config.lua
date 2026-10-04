@@ -42,7 +42,8 @@ ns.Config = {
     media = {
         border = "Interface\\AddOns\\oUF_Neav\\media\\borderTexture",                       -- Buffborder Texture
         statusbar = "Interface\\AddOns\\oUF_Neav\\media\\statusbarTexture",                 -- Statusbar texture
-        frameColor = {1.0, 0.78, 0.52},                                                     -- Unit frame texture color, bronze like the gryphons ({1, 1, 1} = original)
+        frameColor = {1.0, 0.78, 0.52},
+        auraBorderColor = {0.45, 0.35, 0.23},                                               -- Buff border color, bronze ({0.5, 0.5, 0.5} = original gray)                                                     -- Unit frame texture color, bronze like the gryphons ({1, 1, 1} = original)
     },
 
     font = {
