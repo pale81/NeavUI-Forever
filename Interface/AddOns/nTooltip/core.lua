@@ -140,7 +140,7 @@ if cfg.itemqualityBorderColor then
         if tooltip.beautyBorder then
             tooltip:HookScript("OnTooltipCleared", function(self)
                 self:SetBeautyBorderTexture("default")
-                self:SetBeautyBorderColor(1, 1, 1)
+                self:SetBeautyBorderColor()
             end)
         end
     end
@@ -510,7 +510,7 @@ GameTooltip:HookScript("OnTooltipCleared", function(self)
 
     if (cfg.reactionBorderColor and self.beautyBorder) then
         self:SetBeautyBorderTexture("default")
-        self:SetBeautyBorderColor(1, 1, 1)
+        self:SetBeautyBorderColor()
     end
 end)
 
