@@ -1,0 +1,6 @@
+<Ui>
+    <Script file="Libs\SimpleUI.lua"/>
+
+    <Include file="Libs\oUF\oUF.xml"/>
+    <Script file="Libs\oUF_ClassificationIndicator.lua"/>
+</Ui>

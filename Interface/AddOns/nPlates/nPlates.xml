@@ -1,0 +1,22 @@
+<Ui>
+    <Include file="Fonts.xml"/>
+
+    <Script file="Localization.lua"/>
+    <Script file="CVars.lua"/>
+    <Script file="Utils.lua"/>
+    <Script file="Settings.lua"/>
+
+    <Include file="Elements\Elements.xml"/>
+
+    <Script file="nPlates.lua"/>
+
+    <Frame name="nPlatesDriverFrame">
+        <Mixins>
+            <Mixin key="nPlatesDriverMixin" source="local"/>
+        </Mixins>
+        <Scripts>
+            <OnLoad method="OnLoad"/>
+            <OnEvent method="OnEvent"/>
+        </Scripts>
+    </Frame>
+</Ui>
