@@ -195,6 +195,16 @@ Options:SetScript("OnShow", function()
             needsRestart = true,
         },
         {
+            type = "CheckBox",
+            name = "DispellableDebuffsOnly",
+            parent = Options,
+            label = L.DispellableDebuffsOnly,
+            tooltip = L.DispellableDebuffsOnlyTooltip,
+            var = "dispellableDebuffsOnly",
+            offsetY = -16,
+            needsRestart = true,
+        },
+        {
             type = "Label",
             name = "LayoutOptions",
             parent = Options,

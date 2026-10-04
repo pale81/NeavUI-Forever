@@ -202,6 +202,8 @@ function ns.GetDefaultValue(var)
         return 1.2
     elseif var == "indicatorSize" then
         return 7
+    elseif var == "dispellableDebuffsOnly" then
+        return false
     elseif var == "debuffSize" then
         return 22
     end
@@ -280,6 +282,13 @@ function ns.CreateCheckBox(cfg)
 
     if cfg.tooltip then
         checkBox.tooltipText = cfg.tooltip
+        checkBox:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(cfg.label, 1, 1, 1)
+            GameTooltip:AddLine(self.tooltipText, nil, nil, nil, true)
+            GameTooltip:Show()
+        end)
+        checkBox:SetScript("OnLeave", GameTooltip_Hide)
     end
 
     if cfg.disableInCombat then

@@ -123,6 +123,13 @@ function nCore:CreateCheckBox(cfg)
             cfg.tooltip = cfg.tooltip.." "..RED_FONT_COLOR:WrapTextInColorCode(REQUIRES_RELOAD)
         end
         checkBox.tooltipText = cfg.tooltip
+        checkBox:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(cfg.label, 1, 1, 1)
+            GameTooltip:AddLine(self.tooltipText, nil, nil, nil, true)
+            GameTooltip:Show()
+        end)
+        checkBox:SetScript("OnLeave", GameTooltip_Hide)
     end
 
     if cfg.disableInCombat then

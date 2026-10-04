@@ -38,6 +38,7 @@ function NeavRaid_OnEvent(self, event, ...)
             ns.RegisterDefaultSetting("horizontalPowerBars", false)
             ns.RegisterDefaultSetting("indicatorSize", 7)
             ns.RegisterDefaultSetting("debuffSize", 22)
+            ns.RegisterDefaultSetting("dispellableDebuffsOnly", false)
             ns.RegisterDefaultSetting("orientation", "VERTICAL")
             ns.RegisterDefaultSetting("initialAnchor", "TOPLEFT")
             ns.RegisterDefaultSetting("texture", "Interface\\AddOns\\oUF_NeavRaid\\media\\statusbarTexture")
@@ -281,7 +282,10 @@ local function CreateDebuff(self)
     debuff:SetFrameLevel(self.Health:GetFrameLevel() + 3)
     debuff.CreateButton = CreateDebuffButton
 
-    local slotKey = debuff:AddSlot("HARMFUL", {
+        -- "RAID" limits harmful auras to the ones the player can dispel, like the
+        -- "Display Only Dispellable Debuffs" option of the default raid frames.
+
+    local slotKey = debuff:AddSlot(nRaidDB.dispellableDebuffsOnly and "HARMFUL|RAID" or "HARMFUL", {
         sortMethod = AuraContainerSortMethod.UnitFrameDebuff,
     })
 
