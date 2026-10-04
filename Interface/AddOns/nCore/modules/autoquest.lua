@@ -15,8 +15,8 @@ function nCore:AutoQuest()
 
     -- Funcion to ignore specific NPCs
     local function isNpcBlocked(actionType)
-        local npcGuid = UnitGUID("target") or nil
-        if npcGuid and not issecretvalue(npcGuid) then
+        local npcGuid = UnitGUID("target")
+        if not issecretvalue(npcGuid) and npcGuid then
             local _, _, _, _, _, npcID = strsplit("-", npcGuid)
             if npcID then
                 -- Ignore specific NPCs for selecting, accepting and turning-in quests (required if automation has consequences)

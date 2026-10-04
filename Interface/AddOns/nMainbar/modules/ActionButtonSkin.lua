@@ -159,7 +159,7 @@ local function UpdateHotkeys(self)
     end
 
     local text = hotkey:GetText()
-    if text and not issecretvalue(text) and text ~= RANGE_INDICATOR then
+    if not issecretvalue(text) and text and text ~= RANGE_INDICATOR then
         hotkey:SetText(ShortenHotkeyText(text))
     end
 
@@ -200,7 +200,7 @@ local function UpdateUsable(self, _, isUsable, notEnoughMana)
         return
     end
 
-    if isUsable == nil or notEnoughMana == nil then
+    if (not issecretvalue(isUsable) and isUsable == nil) or (not issecretvalue(notEnoughMana) and notEnoughMana == nil) then
         isUsable, notEnoughMana = C_ActionBar.IsUsableAction(self.action)
     end
 

@@ -52,7 +52,7 @@ local function GetChatLines(chat)
         local text = chat:GetMessageInfo(message)
 
             -- Secret messages can't be copied.
-        if text and not issecretvalue(text) then
+        if not issecretvalue(text) and text then
             lines[#lines + 1] = text
         end
     end

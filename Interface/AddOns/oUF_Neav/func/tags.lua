@@ -73,12 +73,10 @@ tags["neav:namecolor"] = function(unit)
     if unit == "player" or unit:match("party") then
         local _, class = UnitClass(unit)
 
-        if class then
-            if issecretvalue(class) then
-                return C_ClassColor.GetClassColor(class):GenerateHexColorMarkup()
-            else
-                return oUF.colors.class[class]:GenerateHexColorMarkup()
-            end
+        if issecretvalue(class) then
+            return C_ClassColor.GetClassColor(class):GenerateHexColorMarkup()
+        elseif class and oUF.colors.class[class] then
+            return oUF.colors.class[class]:GenerateHexColorMarkup()
         else
             return "|cff00ff00"
         end
@@ -92,11 +90,13 @@ end
 events["neav:namecolor"] = "UNIT_NAME_UPDATE UNIT_FACTION"
 
 tags["neav:name"] = function(unit)
-    local name = UnitName(unit) or UNKNOWN
+    local name = UnitName(unit)
 
     if issecretvalue(name) then
         return name
     end
+
+    name = name or UNKNOWN
 
     return (len(name) > 15) and gsub(name, "%s?(.[\128-\191]*)%S+%s", "%1. ") or name
 end
@@ -105,12 +105,14 @@ events["neav:name"] = "UNIT_NAME_UPDATE"
 local timer = {}
 
 tags["neav:afk"] = function(unit)
-    local name = UnitName(unit) or UNKNOWN
+    local name = UnitName(unit)
     local isAFK = UnitIsAFK(unit)
 
     if issecretvalue(name) or issecretvalue(isAFK) then
         return
     end
+
+    name = name or UNKNOWN
 
     if isAFK then
         if not timer[name] then

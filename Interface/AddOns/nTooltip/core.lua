@@ -120,7 +120,7 @@ if cfg.itemqualityBorderColor then
         end
 
         local _, item = self:GetItem()
-        if item and not issecretvalue(item) then
+        if not issecretvalue(item) and item then
             local quality = C_Item.GetItemQualityByID(item)
             if quality then
                 local r, g, b = C_Item.GetItemQualityColor(quality)
@@ -308,7 +308,7 @@ local function GetLineText(index)
     local line = _G["GameTooltipTextLeft"..index]
     local text = line and line:GetText()
 
-    if text and not issecretvalue(text) then
+    if not issecretvalue(text) and text then
         return text
     end
 end
@@ -327,7 +327,7 @@ local function AnySecret(...)
 end
 
 local function IsUnitAccessible(unit)
-    if not unit or issecretvalue(unit) then
+    if issecretvalue(unit) or not unit then
         return false
     end
 
@@ -357,7 +357,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self
 
         -- Custom healthbar coloring
 
-    if (cfg.healthbar.reactionColoring or cfg.healthbar.customColor.apply) and unit and not issecretvalue(unit) then
+    if (cfg.healthbar.reactionColoring or cfg.healthbar.customColor.apply) and not issecretvalue(unit) and unit then
         SetHealthBarColor(unit)
     end
 
@@ -404,7 +404,7 @@ TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self
             -- Color guildnames
 
         local guildName = GetGuildInfo(unit)
-        if guildName and not issecretvalue(guildName) and GetLineText(2) then
+        if not issecretvalue(guildName) and guildName and GetLineText(2) then
             if guildName == GetGuildInfo("player") and IsInGuild() then
                GameTooltipTextLeft2:SetText("|cffFF66CC"..GetLineText(2).."|r")
             end

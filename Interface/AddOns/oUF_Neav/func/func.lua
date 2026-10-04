@@ -177,7 +177,7 @@ end
 ns.GetHealthText = function(unit, cur, max)
     local uconf = config.units[ns.cUnit(unit)]
 
-    if not cur then
+    if not issecretvalue(cur) and not cur then
         cur = UnitHealth(unit)
         max = UnitHealthMax(unit)
     end
@@ -210,7 +210,7 @@ end
 ns.GetPowerText = function(unit, cur, max)
     local uconf = config.units[ns.cUnit(unit)]
 
-    if not cur then
+    if not issecretvalue(cur) and not cur then
         cur = UnitPower(unit)
         max = UnitPowerMax(unit)
     end

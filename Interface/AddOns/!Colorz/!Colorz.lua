@@ -67,11 +67,13 @@ local function GetUnitColor(unit)
         b = 0.5
     elseif UnitIsPlayer(unit) then
         local _, class = UnitClass(unit)
-        if class and not issecretvalue(class) then
+        if issecretvalue(class) then
+            r, g, b = C_ClassColor.GetClassColor(class):GetRGB()
+        elseif class then
             r = RAID_CLASS_COLORS[class].r
             g = RAID_CLASS_COLORS[class].g
             b = RAID_CLASS_COLORS[class].b
-        elseif not class then
+        else
             if UnitIsFriend(unit, "player") then
                 r = 0.60
                 g = 0.60
@@ -110,7 +112,7 @@ local function GetUnitColor(unit)
     else
         local reaction = UnitReaction(unit, "player")
 
-        if reaction and not issecretvalue(reaction) and TOOLTIP_FACTION_COLORS[reaction] then
+        if not issecretvalue(reaction) and reaction and TOOLTIP_FACTION_COLORS[reaction] then
             r = TOOLTIP_FACTION_COLORS[reaction].r
             g = TOOLTIP_FACTION_COLORS[reaction].g
             b = TOOLTIP_FACTION_COLORS[reaction].b
@@ -126,7 +128,7 @@ end
 
 TooltipDataProcessor.AddLinePreCall(Enum.TooltipDataLineType.UnitName, function(tooltip, lineData)
     local unit = lineData.unitToken
-    if unit and not issecretvalue(unit) then
+    if not issecretvalue(unit) and unit then
         local r, g, b = GetUnitColor(unit)
         if r then
             lineData.leftColor = CreateColor(r, g, b)

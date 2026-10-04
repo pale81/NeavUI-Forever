@@ -150,7 +150,7 @@ function ns.CreateCastbars(self, unit)
                 -- Hide some special spells like waterbold or firebold (pets) because it gets really spammy
 
             if unit == "pet" then
-                if spellID and not issecretvalue(spellID) and ignoreList[spellID] then
+                if not issecretvalue(spellID) and spellID and ignoreList[spellID] then
                     self:SetAlpha(0)
                 else
                     self:SetAlpha(1)

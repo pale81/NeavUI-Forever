@@ -21,7 +21,7 @@ local function FormatDuration(timeLeft)
 end
 
 local function UpdateDuration(self, timeLeft)
-    if timeLeft and not issecretvalue(timeLeft) and self.Duration:IsShown() then
+    if not issecretvalue(timeLeft) and timeLeft and self.Duration:IsShown() then
         self.Duration:SetText(FormatDuration(timeLeft))
     end
 end
@@ -37,7 +37,7 @@ local function UpdateBorder(self)
         self.Border:SetTexture(cfg.borderDebuff)
 
         local debuffType = self.buttonInfo and self.buttonInfo.debuffType
-        if debuffType and issecretvalue(debuffType) then
+        if issecretvalue(debuffType) then
             debuffType = nil
         end
         self.Border:SetVertexColor(AuraUtil.GetAuraBorderColor(debuffType):GetRGB())

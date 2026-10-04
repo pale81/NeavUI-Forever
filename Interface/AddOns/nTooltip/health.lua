@@ -86,7 +86,7 @@ end
 local function UpdateHealthText()
     local _, unit = GameTooltip:GetUnit()
 
-    if not bar:IsShown() or not unit or issecretvalue(unit) or not UnitExists(unit) then
+    if not bar:IsShown() or issecretvalue(unit) or not unit or not UnitExists(unit) then
         bar.Text:SetText("")
         return
     end

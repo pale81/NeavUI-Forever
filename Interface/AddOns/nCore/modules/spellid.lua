@@ -5,7 +5,7 @@ function nCore:SpellID()
     local sub = string.sub
 
     local function AddSpellID(self, id)
-        if not id or issecretvalue(id) then
+        if issecretvalue(id) or not id then
             return
         end
 
@@ -15,7 +15,7 @@ function nCore:SpellID()
         for i = 1, self:NumLines() do
             local line = _G[self:GetName().."TextLeft"..i]
             local lineText = line and line:GetText()
-            if lineText and not issecretvalue(lineText) and lineText == text then
+            if not issecretvalue(lineText) and lineText and lineText == text then
                 return
             end
         end

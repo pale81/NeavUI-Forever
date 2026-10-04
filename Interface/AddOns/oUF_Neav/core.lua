@@ -73,7 +73,7 @@ local function UpdatePartyTab(self)
 
     local _, _, groupNumber = GetRaidRosterInfo(raidIndex)
 
-    if groupNumber and not issecretvalue(groupNumber) then
+    if not issecretvalue(groupNumber) and groupNumber then
         self.T:FadeIn(0.5, 0.65)
         self.T[4]:SetText(GROUP.." "..groupNumber)
         self.T[1]:SetWidth(self.T[4]:GetStringWidth()+4)
