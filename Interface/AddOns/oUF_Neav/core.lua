@@ -415,10 +415,15 @@ end
 local function CreateComboPoints(self)
     local element = {}
 
+        -- Druids see their mana bar in cat form, the points are placed below it.
+
+    local anchor = self.AdditionalPower or self.Power
+    local offsetY = self.AdditionalPower and -4 or -2
+
     for i = 1, 10 do
         local point = CreateFrame("StatusBar", "$parentComboPoint"..i, self)
         point:SetSize(12, 16)
-        point:SetPoint("TOPLEFT", self.Power, "BOTTOMLEFT", (i - 1) * 12, -2)
+        point:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", (i - 1) * 12, offsetY)
         point:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
         point:GetStatusBarTexture():SetAlpha(0)
 
@@ -913,12 +918,6 @@ local function CreateUnitLayout(self, unit)
             self:Tag(self.NotHere, "[neav:afk]")
         end
 
-            -- Combo Points
-
-        if playerClass == "ROGUE" or playerClass == "DRUID" then
-            CreateComboPoints(self)
-        end
-
             -- Totems
 
         if playerClass == "SHAMAN" then
@@ -962,6 +961,12 @@ local function CreateUnitLayout(self, unit)
             self.AdditionalPower.CostPrediction:SetPoint("BOTTOM")
             self.AdditionalPower.CostPrediction:SetPoint("RIGHT", self.AdditionalPower:GetStatusBarTexture(),"RIGHT")
             self.AdditionalPower.CostPrediction:SetWidth(99)
+        end
+
+            -- Combo Points
+
+        if playerClass == "ROGUE" or playerClass == "DRUID" then
+            CreateComboPoints(self)
         end
 
             -- Raid Group Indicator
