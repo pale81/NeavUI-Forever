@@ -21,12 +21,32 @@ TimeManagerAlarmFiredTexture:SetTexture(nil)
     -- Player coordinates of the default UI below the top edge of the minimap,
     -- in the font of the clock.
 
+    -- The position is set again whenever the default UI moves the frame.
+
 local playerCoords = MinimapCluster.PlayerCoords
 if playerCoords then
-    playerCoords:SetParent(Minimap)
-    playerCoords:ClearAllPoints()
-    playerCoords:SetPoint("TOP", Minimap, 0, -4)
-    playerCoords:SetSize(120, 16)
+    local isAnchoring
+
+    local function AnchorPlayerCoords()
+        if isAnchoring then
+            return
+        end
+
+        isAnchoring = true
+        playerCoords:SetParent(Minimap)
+        playerCoords:ClearAllPoints()
+        playerCoords:SetPoint("TOP", Minimap, 0, -4)
+        playerCoords:SetSize(120, 16)
+        isAnchoring = false
+    end
+
+    AnchorPlayerCoords()
+    hooksecurefunc(playerCoords, "SetPoint", AnchorPlayerCoords)
+    hooksecurefunc(playerCoords, "SetParent", AnchorPlayerCoords)
+
+    local coordsLoader = CreateFrame("Frame")
+    coordsLoader:RegisterEvent("PLAYER_ENTERING_WORLD")
+    coordsLoader:SetScript("OnEvent", AnchorPlayerCoords)
 
     local coordText = playerCoords.CoordText
     coordText:SetFont(STANDARD_TEXT_FONT, 15, "OUTLINE")

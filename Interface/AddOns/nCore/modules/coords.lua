@@ -35,7 +35,21 @@ function nCore:MapCoords()
         self:SetPoint(unpack(cfg.location))
     end)
 
+        -- The coordinates of the default UI (without outline) are hidden while
+        -- these are enabled.
+
+    local blizzardCoords
+    for _, frame in ipairs(WorldMapFrame.overlayFrames or {}) do
+        if frame.PlayerCoords and frame.CursorCoords then
+            blizzardCoords = frame
+        end
+    end
+
     nCore_CoordsFrame:SetScript("OnUpdate", function(self, elapsed)
+        if blizzardCoords then
+            blizzardCoords:SetAlpha(nCoreDB.MapCoords and 0 or 1)
+        end
+
         if IsInInstance() or not nCoreDB.MapCoords then
             self.Mouse.Text:SetText("")
             self.Player.Text:SetText("")
