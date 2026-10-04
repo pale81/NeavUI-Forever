@@ -79,34 +79,48 @@ local function GetHealthTag(text, cur, max)
     return text
 end
 
-GameTooltipStatusBar:HookScript("OnValueChanged", function(self, value)
-    if self.Text then
-        self.Text:SetText("")
-    end
+    -- The status bar only holds the (possibly secret) health percentage, so the text
+    -- is built from the tooltip unit. A separate frame does the updates to keep this
+    -- code out of the status bar's secure update path.
 
-    if not value then
+local function UpdateHealthText()
+    local _, unit = GameTooltip:GetUnit()
+
+    if not bar:IsShown() or not unit or issecretvalue(unit) or not UnitExists(unit) then
+        bar.Text:SetText("")
         return
     end
 
-    local min, max = self:GetMinMaxValues()
+    local value, max = UnitHealth(unit), UnitHealthMax(unit)
 
-    if (value < min) or (value > max) or (value == 0) or (value == 1) then
+    if issecretvalue(value) or issecretvalue(max) then
+        bar.Text:SetText(format("%s / %s", AbbreviateNumbers(value), AbbreviateNumbers(max)))
         return
     end
 
-    if not self.Text then
-        CreateHealthString(self)
+    if (value <= 0) or (value > max) or (max <= 1) then
+        bar.Text:SetText("")
+        return
     end
 
-    local fullString = GetHealthTag(cfg.healthbar.healthFullFormat, value, max)
-    local normalString = GetHealthTag(cfg.healthbar.healthFormat, value, max)
-
-    local perc = (value/max)*100
-    if perc >= 100 and value ~= 1 then
-        self.Text:SetText(fullString)
-    elseif perc < 100 and value ~= 1 then
-        self.Text:SetText(normalString)
+    if value >= max then
+        bar.Text:SetText(GetHealthTag(cfg.healthbar.healthFullFormat, value, max))
     else
-        self.Text:SetText("")
+        bar.Text:SetText(GetHealthTag(cfg.healthbar.healthFormat, value, max))
     end
+end
+
+local updater = CreateFrame("Frame", nil, GameTooltip)
+updater.elapsed = 0
+updater:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = self.elapsed + elapsed
+
+    if self.elapsed >= 0.1 then
+        self.elapsed = 0
+        UpdateHealthText()
+    end
+end)
+
+GameTooltip:HookScript("OnTooltipCleared", function()
+    bar.Text:SetText("")
 end)
